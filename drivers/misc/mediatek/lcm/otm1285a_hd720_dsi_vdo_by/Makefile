@@ -3,7 +3,8 @@
 #
 include $(srctree)/drivers/misc/mediatek/Makefile.custom
 
-obj-y += mt65xx_lcm_list.o
+obj-y += otm1285a_hd720_dsi_vdo_by.o
 
-LCM_LISTS := $(subst ",,$(CONFIG_CUSTOM_KERNEL_LCM))
-obj-y += $(foreach LCM,$(LCM_LISTS),$(LCM)/)
+
+
+

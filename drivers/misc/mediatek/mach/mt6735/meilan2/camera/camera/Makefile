@@ -3,7 +3,4 @@
 #
 include $(srctree)/drivers/misc/mediatek/Makefile.custom
 
-obj-y += mt65xx_lcm_list.o
-
-LCM_LISTS := $(subst ",,$(CONFIG_CUSTOM_KERNEL_LCM))
-obj-y += $(foreach LCM,$(LCM_LISTS),$(LCM)/)
+obj-y				+= dummyds.o kd_camera_hw.o

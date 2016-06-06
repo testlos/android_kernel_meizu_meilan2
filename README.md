@@ -1,27 +1,35 @@
-# android_kernel_elephone_p8000
-Kernel repository for Elephone P8000 for visi0nary's kernel and my CyanogenMod builds
-* thanks to jfang for some fixes!
+Kernel repository for Meizu M2 Mini (meilan2)
+===========================
+(based on https://github.com/visi0nary/android_kernel_elephone_p8000)
 
+Getting Started
+---------------
 
-How to compile a standalone kernel:
+Clone a repository and checkout current active branch:
 
-git clone git@github.com:visi0nary/android_kernel_elephone_p8000.git
+    git clone https://github.com/divis1969/android_kernel_meilan2.git
+    cd android_kernel_meilan2
+    git checkout origin/3.10
 
-cd android_kernel_elephone_p8000
+Build the code:
 
-export ARCH=arm64
+    export ARCH=arm64
+    export CROSS_COMPILE=/path/to/your/toolchain/aarch64/aarch64-linux-android-x.x/bin/aarch64-linux-android-
+    make -j 4 2>&1 | tee build.log
 
-export CROSS_COMPILE=/path/to/your/toolchain/aarch64/aarch64-linux-android-x.x/bin/aarch64-linux-android-
+Kernel image with DTB:
 
-make p8000_cyanogenmod12_1_defconfig
+    arch/arm64/boot/Image.gz-dtb
 
-make -jX (where X is the # of your CPU threads +1)
+Current state
+-------------
 
+- Phone boots with this kernel
+- Display/Touch are functional (see Known issues)
+- Wifi is functional
 
-Once it is built use this image:
+Known Issues
+-------------
 
-arch/arm64/boot/Image.gz-dtb
-
-
-
-Happy hacking!
+- Display is non-functional after phone wake up
+- Central(touch) key is not working (no driver yet)
