@@ -46,6 +46,8 @@ struct _aarch64_ctx {
 
 #define FPSIMD_MAGIC	0x46508001
 
+#ifdef CONFIG_64BIT
+
 struct fpsimd_context {
 	struct _aarch64_ctx head;
 	__u32 fpsr;
@@ -53,5 +55,6 @@ struct fpsimd_context {
 	__uint128_t vregs[32];
 };
 
+#endif
 
 #endif /* _UAPI__ASM_SIGCONTEXT_H */
