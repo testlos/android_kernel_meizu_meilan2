@@ -465,6 +465,52 @@ void set_usb_current_unlimited(bool enable)
 	usb_unlimited = enable;
 }
 
+
+// add by yangzhiqiang ALPS02067096
+#define MEIZU_CHARGER_CURRENT_REQUEST
+
+#if defined(MEIZU_CHARGER_CURRENT_REQUEST)
+extern int mtkts_bts_get_hw_temp(void);
+
+static void setcurrentformeizu(void) 
+{ 
+	battery_xlog_printk(BAT_LOG_CRTI,"[yzq]mtkts_bts_get_hw_temp = %d\r\n",mtkts_bts_get_hw_temp()); 
+	battery_xlog_printk(BAT_LOG_CRTI,"[yzq]BMT_status.temperature = %d\r\n",BMT_status.temperature); 
+
+	if(((BMT_status.temperature < 15) /*&& (BMT_status.temperature > 0)*/) || ((BMT_status.temperature < 50) && (BMT_status.temperature >= 40))) 
+	{ 
+		if(BMT_status.charger_type == STANDARD_CHARGER) 
+		{ 
+			if(g_temp_input_CC_value >= CHARGE_CURRENT_550_00_MA)
+			{
+				g_temp_input_CC_value = CHARGE_CURRENT_550_00_MA; 
+			}
+			if(g_temp_CC_value >= CHARGE_CURRENT_550_00_MA)
+			{
+				g_temp_CC_value = CHARGE_CURRENT_550_00_MA; 
+			}
+			battery_xlog_printk(BAT_LOG_CRTI,"[yzq][BATTERY][HHL][setcurrentformeizu 1] CC mode charging: %d, input current = %d\r\n",g_temp_CC_value, g_temp_input_CC_value); 
+		} 
+	} 
+/*	else if(((BMT_status.temperature < 40) && (BMT_status.temperature >= 35)))
+	{
+		if(BMT_status.charger_type == STANDARD_CHARGER) 
+		{ 
+			if(g_temp_input_CC_value >= CHARGE_CURRENT_850_00_MA)
+			{
+				g_temp_input_CC_value = CHARGE_CURRENT_850_00_MA; 
+			}
+			if(g_temp_CC_value >= CHARGE_CURRENT_850_00_MA)
+			{
+				g_temp_CC_value = CHARGE_CURRENT_850_00_MA; 
+			}
+			battery_xlog_printk(BAT_LOG_CRTI,"[yzq][BATTERY][HHL][setcurrentformeizu 2 CC mode charging: %d, input current = %d\r\n",g_temp_CC_value, g_temp_input_CC_value); 
+		} 
+	}*/
+} 
+#endif
+// add by yangzhiqiang ALPS02067096
+
 void select_charging_curret_bcct(void)
 {
 	if ((BMT_status.charger_type == STANDARD_HOST) ||
@@ -485,7 +531,7 @@ void select_charging_curret_bcct(void)
 
 		/* --------------------------------------------------- */
 		/* set IOCHARGE */
-		if (g_bcct_value < 100)
+		if (g_bcct_value < 550)
 			g_temp_CC_value = CHARGE_CURRENT_0_00_MA;
 		else if (g_bcct_value < 650)
 			g_temp_CC_value = CHARGE_CURRENT_550_00_MA;
@@ -510,8 +556,6 @@ void select_charging_curret_bcct(void)
 	} else {
 		g_temp_input_CC_value = CHARGE_CURRENT_500_00_MA;
 	}
-	printk("[BATTERY] sky select_charging_curret_bcct %d !\n",g_temp_CC_value);
-
 }
 
 static void pchr_turn_on_charging(void);
@@ -519,7 +563,19 @@ kal_uint32 set_bat_charging_current_limit(int current_limit)
 {
 	battery_log(BAT_LOG_CRTI, "[BATTERY] set_bat_charging_current_limit (%d)\r\n",
 			    current_limit);
-
+// add by yangzhiqiang ALPS02067096, meizu request, temerature 0~50 ingor mtk cooler
+#if defined(MEIZU_CHARGER_CURRENT_REQUEST)
+	//battery_xlog_printk(BAT_LOG_CRTI,"[yzq]mtkts_bts_get_hw_temp = %d\r\n",mtkts_bts_get_hw_temp()); 
+	//battery_xlog_printk(BAT_LOG_CRTI,"[yzq]BMT_status.temperature = %d\r\n",BMT_status.temperature); 
+	if(1)		//((BMT_status.temperature >0) && (BMT_status.temperature <50))
+	{
+		battery_xlog_printk(BAT_LOG_CRTI, "[yzq][BATTERY]  ingor mtk cooler limit\r\n");
+		g_bcct_flag = 0;
+		pchr_turn_on_charging();
+		return g_bcct_flag;
+	}
+#endif
+// add by yangzhiqiang ALPS02067096
 	if (current_limit != -1) {
 		g_bcct_flag = 1;
 		g_bcct_value = current_limit;
@@ -653,30 +709,32 @@ void select_charging_curret(void)
 #if defined(CONFIG_MTK_JEITA_STANDARD_SUPPORT)
 		set_jeita_charging_current();
 #endif
+// add by yangzhiqiang ALPS02067096
+#if defined(MEIZU_CHARGER_CURRENT_REQUEST)
+		setcurrentformeizu();
+#endif
+// add by yangzhiqiang ALPS02067096
 	}
 
 
 }
 
-static kal_uint32 charging_full_current = CHARGING_FULL_CURRENT;	/* mA */
+
 static kal_uint32 charging_full_check(void)
 {
-	kal_uint32 status = KAL_FALSE;
-	static kal_uint8 full_check_count = 0;
+	kal_uint32 status;
 
-	if (BMT_status.ICharging <= charging_full_current) {
-		full_check_count++;
-		if (6 == full_check_count) {
-			status = KAL_TRUE;
-			full_check_count = 0;
-			battery_log(BAT_LOG_CRTI,
-					    "[BATTERY] Battery full and disable charging on %d mA\n",
-					    BMT_status.ICharging);
-		}
+	battery_charging_control(CHARGING_CMD_GET_CHARGING_STATUS, &status);
+	if (status == KAL_TRUE) {
+		g_full_check_count++;
+		if (g_full_check_count >= FULL_CHECK_TIMES) {
+			return KAL_TRUE;
+		} else
+			return KAL_FALSE;
 	} else {
-		full_check_count = 0;
+		g_full_check_count = 0;
+		return status;
 	}
-	return status;
 }
 
 
@@ -719,16 +777,12 @@ static void pchr_turn_on_charging(void)
 			g_temp_CC_value = AC_CHARGER_CURRENT;
 			battery_log(BAT_LOG_FULL,
 					    "USB_CURRENT_UNLIMITED, use AC_CHARGER_CURRENT\n");
-		} 
-#if !defined(CONFIG_MTK_FAN5405_SUPPORT)  // aka.jiang add
-		else if (g_bcct_flag == 1) {
+		} else if (g_bcct_flag == 1) {
 			select_charging_curret_bcct();
 
 			battery_log(BAT_LOG_FULL,
 					    "[BATTERY] select_charging_curret_bcct !\n");
-		} 
-#endif
-		else {
+		} else {
 			select_charging_curret();
 
 			battery_log(BAT_LOG_FULL, "[BATTERY] select_charging_curret !\n");

@@ -22,6 +22,7 @@
 #include <linux/device.h>
 #include <linux/key.h>
 #include <linux/times.h>
+#include <linux/random.h>
 #include <linux/posix-timers.h>
 #include <linux/security.h>
 #include <linux/dcookies.h>

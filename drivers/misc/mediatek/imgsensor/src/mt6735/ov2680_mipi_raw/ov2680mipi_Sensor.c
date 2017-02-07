@@ -1402,7 +1402,7 @@ static SENSOR_FUNCTION_STRUCT sensor_func = {
 };
 
 /*UINT32 OV2680_MIPI_RAW_SensorInit(PSENSOR_FUNCTION_STRUCT *pfFunc)*/
-UINT32 OV2680MIPISensorInit(PSENSOR_FUNCTION_STRUCT *pfFunc)
+UINT32 OV2680_MIPI_RAW_SensorInit(PSENSOR_FUNCTION_STRUCT *pfFunc)
 
 {
 	/* To Do : Check Sensor status here */

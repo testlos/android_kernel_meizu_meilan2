@@ -107,7 +107,7 @@ static void disable_micbias(unsigned long a);
 /* Used to let accdet know if the pin has been fully plugged-in */
 #define EINT_PIN_PLUG_IN        (1)
 #define EINT_PIN_PLUG_OUT       (0)
-volatile int cur_eint_state = EINT_PIN_PLUG_OUT;
+volatile int cur_eint_state = EINT_PIN_PLUG_OUT;		// yangzhiqiang ALPS02062779
 static struct work_struct accdet_disable_work;
 static struct workqueue_struct * accdet_disable_workqueue = NULL;
 #else
@@ -492,7 +492,7 @@ static void accdet_eint_work_callback(struct work_struct *work)
 				ACCDET_DEBUG("[Accdet] TS3A225E Detection sequence completed without successful!\n");
 			}
 		#endif
-
+            msleep(500); //xuecheng@wind-mobi.com add for accdet insert POP 20150529
 			accdet_init();// do set pwm_idle on in accdet_init
 		
 		#ifdef ACCDET_PIN_RECOGNIZATION
@@ -594,13 +594,21 @@ static irqreturn_t accdet_eint_func(int irq,void *data)
 	#endif  
 		/* update the eint status */
 		cur_eint_state = EINT_PIN_PLUG_IN;
-					
+
+		//INIT the timer to disable micbias.
+// yangzhiqiang ALPS02062779
+#if 1
 		mod_timer(&micbias_timer, jiffies + MICBIAS_DISABLE_TIMER);
+#else					
+		init_timer(&micbias_timer);
+		micbias_timer.expires = jiffies + MICBIAS_DISABLE_TIMER;
+		micbias_timer.function = &disable_micbias;
+		micbias_timer.data = ((unsigned long) 0 );
+		add_timer(&micbias_timer);
+#endif
+// yangzhiqiang ALPS02062779
 	}
-	#ifndef ACCDET_EINT_IRQ
-	disable_irq_nosync(accdet_irq);
-	#endif
-	ACCDET_DEBUG("[Accdet]accdet_eint_func after cur_eint_state=%d\n", cur_eint_state);
+
 	ret = queue_work(accdet_eint_workqueue, &accdet_eint_work);	
 	return IRQ_HANDLED;
 }
@@ -657,7 +665,18 @@ static void accdet_eint_func(void)
 		/* update the eint status */
 		cur_eint_state = EINT_PIN_PLUG_IN;
 
+		//INIT the timer to disable micbias.
+// yangzhiqiang ALPS02062779
+#if 1
 		mod_timer(&micbias_timer, jiffies + MICBIAS_DISABLE_TIMER);
+#else										
+		init_timer(&micbias_timer);
+		micbias_timer.expires = jiffies + MICBIAS_DISABLE_TIMER;
+		micbias_timer.function = &disable_micbias;
+		micbias_timer.data = ((unsigned long) 0 );
+		add_timer(&micbias_timer);
+#endif
+// yangzhiqiang ALPS02062779
 	}
 	ACCDET_DEBUG("[Accdet]accdet_eint_func after1 cur_eint_state=%d\n", cur_eint_state);
 	ret = queue_work(accdet_eint_workqueue, &accdet_eint_work);	
@@ -732,7 +751,9 @@ static DEFINE_MUTEX(accdet_multikey_mutex);
 */
 
 #define DW_KEY_HIGH_THR	 (500) //0.50v=500000uv
-#define DW_KEY_THR		 (220) //0.22v=220000uv
+//gemingming@wind-mobi.com 20150527 modify for headset volumedown key begin
+#define DW_KEY_THR		 (180) //0.22v=220000uv 
+//gemingming@wind-mobi.com 20150527 modify for headset volumedown key end
 #define UP_KEY_THR       (80) //0.08v=80000uv
 #define MD_KEY_THR		 (0)
 
@@ -1722,11 +1743,13 @@ int mt_accdet_probe(void)
 		ACCDET_DEBUG("[Accdet]kpd_accdet_dev : fail!\n");
 		return -ENOMEM;
 	}
+// yangzhiqiang ALPS02062779
 	//INIT the timer to disable micbias.
 	init_timer(&micbias_timer);
 	micbias_timer.expires = jiffies + MICBIAS_DISABLE_TIMER;
 	micbias_timer.function = &disable_micbias;
 	micbias_timer.data = ((unsigned long) 0 );
+// yangzhiqiang ALPS02062779
 
 	//define multi-key keycode
 	__set_bit(EV_KEY, kpd_accdet_dev->evbit);

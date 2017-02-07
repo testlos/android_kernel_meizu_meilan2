@@ -171,6 +171,16 @@ cmdBufAllocateCmdInfo (
             prCmdInfo->fgIsOid = FALSE;
             prCmdInfo->fgDriverDomainMCR = FALSE;
         }
+    }else {
+    	P_GLUE_INFO_T prGlueInfo = prAdapter->prGlueInfo;
+		P_QUE_T prCmdQue = &prGlueInfo->rCmdQueue;
+		P_QUE_T prPendingCmdQue = &prAdapter->rPendingCmdQueue;
+		P_TX_TCQ_STATUS_T prTc = &prAdapter->rTxCtrl.rTc;
+		extern MTK_WCN_BOOL mtk_wcn_wmt_assert(ENUM_WMTDRV_TYPE_T type, UINT32 reason);
+		DBGLOG(INIT, INFO, ("Cmd Que Number=%u, pending Que=%u\n", prCmdQue->u4NumElem, prPendingCmdQue->u4NumElem));
+		DBGLOG(INIT, INFO, ("Tc4 number:%d\n", prTc->aucFreeBufferCount[TC4_INDEX]));
+		mtk_wcn_wmt_assert(WMTDRV_TYPE_WIFI, 40);
+    	glDumpConnSysCpuInfo(prGlueInfo);
     }
 
     return prCmdInfo;

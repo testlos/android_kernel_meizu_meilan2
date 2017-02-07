@@ -9,6 +9,7 @@ static struct acc_init_info *gsensor_init_list[MAX_CHOOSE_G_NUM] = { 0 };	/* mod
 #if defined(CONFIG_HAS_EARLYSUSPEND)
 static void acc_early_suspend(struct early_suspend *h);
 static void acc_late_resume(struct early_suspend *h);
+char *gsensor_name  = NULL;   //add yudengwu 2015-01-30
 #endif
 
 static void acc_work_func(struct work_struct *work)
@@ -441,6 +442,7 @@ static int acc_real_driver_init(void)
 			if (0 == err) {
 				ACC_LOG(" acc real driver %s probe ok\n",
 					gsensor_init_list[i]->name);
+				gsensor_name = gsensor_init_list[i]->name;    //add yudengwu 2015-01-30
 				break;
 			}
 		}

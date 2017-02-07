@@ -409,6 +409,10 @@ struct input_keymap_entry {
 #define KEY_F22			192
 #define KEY_F23			193
 #define KEY_F24			194
+/* liukun@wind-mobi.com 20150512 begin */
+#define KEY_GESTURE        195
+#define KEY_FINGERPRINT		196
+/* liukun@wind-mobi.com 20150512 end */
 
 #define KEY_PLAYCD		200
 #define KEY_PAUSECD		201

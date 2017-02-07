@@ -6780,7 +6780,6 @@ void mt6311_hw_init(void)
 
 kal_uint32 mt6311_hw_component_detect(void)
 {
-#if 0
     kal_uint32 ret = 0, chip_id = 0;
     ret = update_mt6311_chip_id();
     if (ret < 0)
@@ -6803,11 +6802,9 @@ kal_uint32 mt6311_hw_component_detect(void)
         g_mt6311_hw_exist=1;
     }
     else
-#endif
     {
         g_mt6311_hw_exist=0;
     }
-
     PMICLOG("[mt6311_hw_component_detect] exist=%d\n", g_mt6311_hw_exist);
     return 0;
 }

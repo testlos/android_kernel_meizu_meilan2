@@ -242,7 +242,10 @@ kal_bool  gFG_Is_offset_init = KAL_FALSE;
 #ifdef MTK_MULTI_BAT_PROFILE_SUPPORT
 extern int IMM_GetOneChannelValue_Cali(int Channel, int *voltage);
 kal_uint32 g_fg_battery_id = 0;
-
+//gemingming@wind-mobi.com begin
+kal_uint32 g_battery_id_voltage[] = {60000,1100000,1390000,-1};
+#define TOTAL_BATTERY_NUMBER 4
+//gemingming@wind-mobi.com end
 #ifdef MTK_GET_BATTERY_ID_BY_AUXADC
 void fgauge_get_profile_id(void)
 {
@@ -308,7 +311,8 @@ int get_r_fg_value(void)
 }
 
 #ifdef MTK_MULTI_BAT_PROFILE_SUPPORT
-int BattThermistorConverTemp(int Res)
+//gemingming@wind-mobi.com begin
+/*int BattThermistorConverTemp(int Res)
 {
 	int i = 0;
 	int RES1 = 0, RES2 = 0;
@@ -339,6 +343,48 @@ int BattThermistorConverTemp(int Res)
 
 	return TBatt_Value;
 }
+*/
+
+int BattThermistorConverTemp(int Res)
+{
+	int i = 0;
+	int RES1 = 0, RES2 = 0;
+	int TBatt_Value = -200, TMP1 = 0, TMP2 = 0;
+
+	if (Res >= Batt_Temperature_Table[0].TemperatureR) {
+		TBatt_Value = -20;
+	} else if (Res <= Batt_Temperature_Table[16].TemperatureR) {
+		TBatt_Value = 60;
+	} else {
+		RES1 = Batt_Temperature_Table[0].TemperatureR;
+		TMP1 = Batt_Temperature_Table[0].BatteryTemp;
+
+		for (i = 0; i <= 16; i++) {
+			if (Res >= Batt_Temperature_Table[i].TemperatureR) {
+				RES2 = Batt_Temperature_Table[i].TemperatureR;
+				TMP2 = Batt_Temperature_Table[i].BatteryTemp;
+				break;
+			} else {
+				RES1 = Batt_Temperature_Table[i].TemperatureR;
+				TMP1 = Batt_Temperature_Table[i].BatteryTemp;
+			}
+		}
+
+		TBatt_Value = (((Res - RES2) * TMP1) + ((RES1 - Res) * TMP2)) / (RES1 - RES2);
+	}
+
+	return TBatt_Value;
+}
+
+kal_int32 g_Q_MAX_POS_50[] = {2135, 2345, 2334, 2329};	// {2224, 2383};	//2560
+kal_int32 g_Q_MAX_POS_25[] = {2382, 2347, 2335, 2329};	// {2481, 2384};	//2557
+kal_int32 g_Q_MAX_POS_0[] =	{2135, 2339, 2179, 2314};	// {2224, 2225};	//2517
+kal_int32 g_Q_MAX_NEG_10[] = {1463, 2269, 2051, 2248};	// {1524, 2094};	//2397
+kal_int32 g_Q_MAX_POS_50_H_CURRENT[] = {2113, 2302, 2316, 2293};	// {2201, 2365};	//2503
+kal_int32 g_Q_MAX_POS_25_H_CURRENT[] = {2337, 2297, 2311, 2288};	// {2435, 2360};	//2490
+kal_int32 g_Q_MAX_POS_0_H_CURRENT[] = {1842, 2139, 2080, 2118};	// {1919, 2124};		//2293
+kal_int32 g_Q_MAX_NEG_10_H_CURRENT[] = {547, 1184, 1632, 1428};	// {570, 1666};	//1347
+//gemingming@wind-mobi.com end
 
 kal_int32 fgauge_get_Q_max(kal_int16 temperature)
 {
@@ -633,64 +679,232 @@ int force_get_tbat(kal_bool update)
 }
 EXPORT_SYMBOL(force_get_tbat);
 
+//gemingming@wind-mobi.com begin
 #ifdef MTK_MULTI_BAT_PROFILE_SUPPORT
 int fgauge_get_saddles(void)
 {
-	return sizeof(battery_profile_temperature) / sizeof(BATTERY_PROFILE_STRUC);
+	if(g_fg_battery_id == 0){
+	    return sizeof(atl_battery_profile_temperature) / sizeof(BATTERY_PROFILE_STRUC);
+	}
+	else if(g_fg_battery_id == 1){
+	    return sizeof(vk_battery_profile_temperature) / sizeof(BATTERY_PROFILE_STRUC);
+	}
+	else if(g_fg_battery_id == 2){
+	    return sizeof(sony_battery_profile_temperature) / sizeof(BATTERY_PROFILE_STRUC);
+	}
+	else
+	{
+		 return sizeof(bak_battery_profile_temperature) / sizeof(BATTERY_PROFILE_STRUC);
+	}
+
+	//return sizeof(battery_profile_temperature) / sizeof(BATTERY_PROFILE_STRUC);
 }
 
 int fgauge_get_saddles_r_table(void)
 {
-	return sizeof(r_profile_temperature) / sizeof(R_PROFILE_STRUC);
+	if(g_fg_battery_id == 0){
+		return sizeof(atl_r_profile_temperature) / sizeof(R_PROFILE_STRUC);
+	}
+	else if(g_fg_battery_id == 1){
+		return sizeof(vk_r_profile_temperature) / sizeof(R_PROFILE_STRUC);
+	}
+	else if(g_fg_battery_id == 0){
+		return sizeof(sony_r_profile_temperature) / sizeof(R_PROFILE_STRUC);
+	}
+	else
+	{
+		return sizeof(bak_r_profile_temperature) / sizeof(R_PROFILE_STRUC);
+	}
+
+//	return sizeof(r_profile_temperature) / sizeof(R_PROFILE_STRUC);
 }
 
 BATTERY_PROFILE_STRUC_P fgauge_get_profile(kal_uint32 temperature)
 {
-	switch (temperature) {
-	case TEMPERATURE_T0:
-		return &battery_profile_t0[g_fg_battery_id][0];
-		break;
-	case TEMPERATURE_T1:
-		return &battery_profile_t1[g_fg_battery_id][0];
-		break;
-	case TEMPERATURE_T2:
-		return &battery_profile_t2[g_fg_battery_id][0];
-		break;
-	case TEMPERATURE_T3:
-		return &battery_profile_t3[g_fg_battery_id][0];
-		break;
-	case TEMPERATURE_T:
-		return &battery_profile_temperature[0];
-		break;
-	default:
-		return NULL;
-		break;
+	if(g_fg_battery_id == 0){
+		switch (temperature) {
+		case TEMPERATURE_T0:
+			return &atl_battery_profile_t0[0];
+			break;
+		case TEMPERATURE_T1:
+			return &atl_battery_profile_t1[0];
+			break;
+		case TEMPERATURE_T2:
+			return &atl_battery_profile_t2[0];
+			break;
+		case TEMPERATURE_T3:
+			return &atl_battery_profile_t3[0];
+			break;
+		case TEMPERATURE_T:
+			return &atl_battery_profile_temperature[0];
+			break;
+		default:
+			return NULL;
+			break;
+		}
+	}
+	else if(g_fg_battery_id == 1) {
+		switch (temperature) {
+		case TEMPERATURE_T0:
+			return &vk_battery_profile_t0[0];
+			break;
+		case TEMPERATURE_T1:
+			return &vk_battery_profile_t1[0];
+			break;
+		case TEMPERATURE_T2:
+			return &vk_battery_profile_t2[0];
+			break;
+		case TEMPERATURE_T3:
+			return &vk_battery_profile_t3[0];
+			break;
+		case TEMPERATURE_T:
+			return &vk_battery_profile_temperature[0];
+			break;
+		default:
+			return NULL;
+			break;
+		}
+	}
+	else if(g_fg_battery_id == 2) {
+		switch (temperature) {
+		case TEMPERATURE_T0:
+			return &sony_battery_profile_t0[0];
+			break;
+		case TEMPERATURE_T1:
+			return &sony_battery_profile_t1[0];
+			break;
+		case TEMPERATURE_T2:
+			return &sony_battery_profile_t2[0];
+			break;
+		case TEMPERATURE_T3:
+			return &sony_battery_profile_t3[0];
+			break;
+		case TEMPERATURE_T:
+			return &sony_battery_profile_temperature[0];
+			break;
+		default:
+			return NULL;
+			break;
+		}
+	}
+	else{
+		switch (temperature) {
+		case TEMPERATURE_T0:
+			return &bak_battery_profile_t0[0];
+			break;
+		case TEMPERATURE_T1:
+			return &bak_battery_profile_t1[0];
+			break;
+		case TEMPERATURE_T2:
+			return &bak_battery_profile_t2[0];
+			break;
+		case TEMPERATURE_T3:
+			return &bak_battery_profile_t3[0];
+			break;
+		case TEMPERATURE_T:
+			return &bak_battery_profile_temperature[0];
+			break;
+		default:
+			return NULL;
+			break;
+		}
 	}
 }
 
 R_PROFILE_STRUC_P fgauge_get_profile_r_table(kal_uint32 temperature)
 {
-	switch (temperature) {
-	case TEMPERATURE_T0:
-		return &r_profile_t0[g_fg_battery_id][0];
-		break;
-	case TEMPERATURE_T1:
-		return &r_profile_t1[g_fg_battery_id][0];
-		break;
-	case TEMPERATURE_T2:
-		return &r_profile_t2[g_fg_battery_id][0];
-		break;
-	case TEMPERATURE_T3:
-		return &r_profile_t3[g_fg_battery_id][0];
-		break;
-	case TEMPERATURE_T:
-		return &r_profile_temperature[0];
-		break;
-	default:
-		return NULL;
-		break;
+	if(g_fg_battery_id == 0){
+		switch (temperature) {
+		case TEMPERATURE_T0:
+			return &atl_r_profile_t0[0];
+			break;
+		case TEMPERATURE_T1:
+			return &atl_r_profile_t1[0];
+			break;
+		case TEMPERATURE_T2:
+			return &atl_r_profile_t2[0];
+			break;
+		case TEMPERATURE_T3:
+			return &atl_r_profile_t3[0];
+			break;
+		case TEMPERATURE_T:
+			return &atl_r_profile_temperature[0];
+			break;
+		default:
+			return NULL;
+			break;
+		}
+	}
+	else if(g_fg_battery_id == 1){
+		switch (temperature) {
+		case TEMPERATURE_T0:
+			return &vk_r_profile_t0[0];
+			break;
+		case TEMPERATURE_T1:
+			return &vk_r_profile_t1[0];
+			break;
+		case TEMPERATURE_T2:
+			return &vk_r_profile_t2[0];
+			break;
+		case TEMPERATURE_T3:
+			return &vk_r_profile_t3[0];
+			break;
+		case TEMPERATURE_T:
+			return &vk_r_profile_temperature[0];
+			break;
+		default:
+			return NULL;
+			break;
+		}
+	}
+	else if(g_fg_battery_id == 2){
+		switch (temperature) {
+		case TEMPERATURE_T0:
+			return &sony_r_profile_t0[0];
+			break;
+		case TEMPERATURE_T1:
+			return &sony_r_profile_t1[0];
+			break;
+		case TEMPERATURE_T2:
+			return &sony_r_profile_t2[0];
+			break;
+		case TEMPERATURE_T3:
+			return &sony_r_profile_t3[0];
+			break;
+		case TEMPERATURE_T:
+			return &sony_r_profile_temperature[0];
+			break;
+		default:
+			return NULL;
+			break;
+		}
+	}
+	else
+	{
+		
+		switch (temperature) {
+		case TEMPERATURE_T0:
+			return &bak_r_profile_t0[0];
+			break;
+		case TEMPERATURE_T1:
+			return &bak_r_profile_t1[0];
+			break;
+		case TEMPERATURE_T2:
+			return &bak_r_profile_t2[0];
+			break;
+		case TEMPERATURE_T3:
+			return &bak_r_profile_t3[0];
+			break;
+		case TEMPERATURE_T:
+			return &bak_r_profile_temperature[0];
+			break;
+		default:
+			return NULL;
+			break;
+		}
 	}
 }
+//gemingming@wind-mobi.com end
 #else
 int fgauge_get_saddles(void)
 {
@@ -1074,7 +1288,6 @@ void fgauge_construct_battery_profile(kal_int32 temperature, BATTERY_PROFILE_STR
 
 void fgauge_construct_r_table_profile(kal_int32 temperature, R_PROFILE_STRUC_P temp_profile_p)
 {
-	dump_stack();
 	R_PROFILE_STRUC_P low_profile_p, high_profile_p;
 	kal_int32 low_temperature, high_temperature;
 	int i, saddles;
@@ -2674,7 +2887,7 @@ kal_int32 battery_meter_get_charging_current(void)
 {
 #ifdef DISABLE_CHARGING_CURRENT_MEASURE
 	return 0;
-#elif !defined (EXTERNAL_SWCHR_SUPPORT)
+#else //elif !defined (EXTERNAL_SWCHR_SUPPORT)
 	kal_int32 ADC_BAT_SENSE_tmp[20] =
 	    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	kal_int32 ADC_BAT_SENSE_sum = 0;
@@ -2764,8 +2977,8 @@ kal_int32 battery_meter_get_charging_current(void)
 	}
 
 	return ICharging;
-#else
-    return 0;
+//#else
+//    return 0;
 #endif
 }
 

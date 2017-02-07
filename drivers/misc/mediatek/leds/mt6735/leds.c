@@ -88,6 +88,9 @@ static unsigned int backlight_PWM_div_hal = CLK_DIV1;	/* this para come from cus
 /* Use Old Mode of PWM to suppoort 256 backlight level */
 #define BACKLIGHT_LEVEL_PWM_256_SUPPORT 256
 extern unsigned int Cust_GetBacklightLevelSupport_byPWM(void);
+/*dixiaobing@wind.mobi.com 20150721 start*/
+extern int als_enable_flag;
+/*dixiaobing@wind.mobi.com 20150721 end*/
 
 /****************************************************************************
  * func:return global variables
@@ -354,7 +357,7 @@ int mt_led_blink_pmic(enum mt65xx_led_pmic pmic_type, struct nled_setting *led)
 			pmic_set_register_value(PMIC_ISINK_CH0_STEP,ISINK_3);//16mA
 			pmic_set_register_value(PMIC_ISINK_DIM0_DUTY,duty);
 			pmic_set_register_value(PMIC_ISINK_DIM0_FSEL,pmic_freqsel_array[time_index]);			
-			pmic_set_register_value(PMIC_ISINK_CH0_EN,NLED_ON);
+	//		pmic_set_register_value(PMIC_ISINK_CH0_EN,NLED_ON);	//gemingming@wind-mobi.com 20150702 
 			break;
 		case MT65XX_LED_PMIC_NLED_ISINK1:
 			pmic_set_register_value(PMIC_RG_DRV_ISINK1_CK_PDN,0);
@@ -509,11 +512,16 @@ unsigned int mt_show_pwm_register(unsigned int addr)
 	return 0;
 }
 
+//gemingming@wind-mobi.com 20150601 modify breath led begin
+extern unsigned int leds_mode;
+extern unsigned int leds_factory;
+//gemingming@wind-mobi.com 20150601 modify breath led end
+
 int mt_brightness_set_pmic(enum mt65xx_led_pmic pmic_type, u32 level, u32 div)
 {
 	static bool first_time = true;
 
-	LEDS_DEBUG("[LED]PMIC#%d:%d\n", pmic_type, level);
+	LEDS_DEBUG("[LED]PMIC#%d:%d:leds_mode = %d,leds_factory = %d\n", pmic_type, level,leds_mode,leds_factory);
 	mutex_lock(&leds_pmic_mutex);
 		if(pmic_type == MT65XX_LED_PMIC_NLED_ISINK0)
 		{
@@ -527,46 +535,77 @@ int mt_brightness_set_pmic(enum mt65xx_led_pmic pmic_type, u32 level, u32 div)
 				first_time = false;
 			}
 			pmic_set_register_value(PMIC_RG_DRV_32K_CK_PDN,0x0); // Disable power down  
-			pmic_set_register_value(PMIC_RG_DRV_ISINK0_CK_PDN,0);
-			pmic_set_register_value(PMIC_RG_DRV_ISINK0_CK_CKSEL,0);
-			if (level == 128)
+			
+			//gemingming@wind-mobi.com 20150601 modify breath led begin
+			if(1 == leds_mode)
 			{
+				pmic_set_register_value(PMIC_RG_DRV_ISINK0_CK_PDN,0);
+				pmic_set_register_value(PMIC_RG_DRV_ISINK0_CK_CKSEL,0);
 				pmic_set_register_value(PMIC_ISINK_CH0_MODE,PMIC_PWM_1);
-				pmic_set_register_value(PMIC_ISINK_CH0_STEP,ISINK_4);//20mA
-				pmic_set_register_value(PMIC_ISINK_BREATH0_TR1_SEL,0x04);
-				pmic_set_register_value(PMIC_ISINK_BREATH0_TR2_SEL,0x08);
-				pmic_set_register_value(PMIC_ISINK_BREATH0_TF1_SEL,0x02);
-				pmic_set_register_value(PMIC_ISINK_BREATH0_TF2_SEL,0x08);
-				pmic_set_register_value(PMIC_ISINK_BREATH0_TON_SEL,0x01);
-				pmic_set_register_value(PMIC_ISINK_BREATH0_TOFF_SEL,0x01);
-				pmic_set_register_value(PMIC_ISINK_DIM0_DUTY,28);//90%
-				pmic_set_register_value(PMIC_ISINK_DIM0_FSEL,11);
+				pmic_set_register_value(PMIC_ISINK_CH0_STEP,ISINK_3);//16mA
+				pmic_set_register_value(PMIC_ISINK_BREATH0_TR1_SEL,0x4);
+				pmic_set_register_value(PMIC_ISINK_BREATH0_TR2_SEL,0x4);
+				pmic_set_register_value(PMIC_ISINK_BREATH0_TF1_SEL,0x4);
+				pmic_set_register_value(PMIC_ISINK_BREATH0_TF2_SEL,0x4);
+				pmic_set_register_value(PMIC_ISINK_BREATH0_TON_SEL,0x2);
+				pmic_set_register_value(PMIC_ISINK_BREATH0_TOFF_SEL,0x3);		
+				pmic_set_register_value(PMIC_ISINK_DIM0_DUTY,15);
+				pmic_set_register_value(PMIC_ISINK_DIM0_FSEL,ISINK_1KHZ);		
+				//pmic_set_register_value(PMIC_ISINK_CH0_EN,NLED_ON);
+				udelay(200);
+			//gemingming@wind-mobi.com 20150601 modify breath led end
+
+				if (level) 
+				{
+
+					pmic_set_register_value(PMIC_ISINK_CH0_EN,NLED_ON);
+					
+				}
+				else 
+				{
+					pmic_set_register_value(PMIC_ISINK_CH0_EN,NLED_OFF);
+				}
+			}
+			else if(2 == leds_factory)    //modify yudengwu@wind-mobi.com
+			{
+				pmic_set_register_value(PMIC_RG_DRV_ISINK0_CK_PDN,0);
+				pmic_set_register_value(PMIC_RG_DRV_ISINK0_CK_CKSEL,0);
+				pmic_set_register_value(PMIC_ISINK_CH0_MODE,PMIC_PWM_0);
+				pmic_set_register_value(PMIC_ISINK_CH0_STEP,ISINK_3);//16mA
+				pmic_set_register_value(PMIC_ISINK_DIM0_DUTY,15);
+				pmic_set_register_value(PMIC_ISINK_DIM0_FSEL,ISINK_1KHZ);			
+				//pmic_set_register_value(PMIC_ISINK_CH0_EN,NLED_ON);
+				
+				if (level) 
+				{
+					pmic_set_register_value(PMIC_ISINK_CH0_EN,NLED_ON);
+				}
+				else 
+				{
+					pmic_set_register_value(PMIC_ISINK_CH0_EN,NLED_OFF);
+				}
 			}
 			else
 			{
+				pmic_set_register_value(PMIC_RG_DRV_ISINK0_CK_PDN,0);
+				pmic_set_register_value(PMIC_RG_DRV_ISINK0_CK_CKSEL,0);
 				pmic_set_register_value(PMIC_ISINK_CH0_MODE,PMIC_PWM_0);
-				pmic_set_register_value(PMIC_ISINK_CH0_STEP,ISINK_4);//20mA
-				if (level == 64) {
-					pmic_set_register_value(PMIC_ISINK_DIM0_DUTY,11);// (11/31)=35%
-				}
-				else if (level == 32) {
-					pmic_set_register_value(PMIC_ISINK_DIM0_DUTY,5);// (5/31)=16%
-				}
-				else {
-					pmic_set_register_value(PMIC_ISINK_DIM0_DUTY,28);// (28/31)=90%
-				}
-				pmic_set_register_value(PMIC_ISINK_DIM0_FSEL,ISINK_1KHZ);//1KHz
-			}
-			if (level) 
-			{
+				pmic_set_register_value(PMIC_ISINK_CH0_STEP,ISINK_3);//16mA
+				pmic_set_register_value(PMIC_ISINK_DIM0_DUTY,15);
+				pmic_set_register_value(PMIC_ISINK_DIM0_FSEL,ISINK_1KHZ);			
+				//pmic_set_register_value(PMIC_ISINK_CH0_EN,NLED_ON);
 
-				pmic_set_register_value(PMIC_ISINK_CH0_EN,NLED_ON);
-				
+				if (level) 
+				{
+					pmic_set_register_value(PMIC_ISINK_CH0_EN,NLED_OFF);					
+				}
+				else 
+				{
+					pmic_set_register_value(PMIC_ISINK_CH0_EN,NLED_OFF);
+				}
 			}
-			else 
-			{
-				pmic_set_register_value(PMIC_ISINK_CH0_EN,NLED_OFF);
-			}
+			//gemingming@wind-mobi.com 20150601 modify breath led end
+			
 			mutex_unlock(&leds_pmic_mutex);
 			return 0;
 		}
@@ -584,34 +623,10 @@ int mt_brightness_set_pmic(enum mt65xx_led_pmic pmic_type, u32 level, u32 div)
 			pmic_set_register_value(PMIC_RG_DRV_32K_CK_PDN,0x0); // Disable power down  
 			pmic_set_register_value(PMIC_RG_DRV_ISINK1_CK_PDN,0);
 			pmic_set_register_value(PMIC_RG_DRV_ISINK1_CK_CKSEL,0);
-			if (level == 128)
-			{
-				pmic_set_register_value(PMIC_ISINK_CH1_MODE,PMIC_PWM_1);
-				pmic_set_register_value(PMIC_ISINK_CH1_STEP,ISINK_4);//20mA
-				pmic_set_register_value(PMIC_ISINK_BREATH1_TR1_SEL,0x04);
-				pmic_set_register_value(PMIC_ISINK_BREATH1_TR2_SEL,0x08);
-				pmic_set_register_value(PMIC_ISINK_BREATH1_TF1_SEL,0x02);
-				pmic_set_register_value(PMIC_ISINK_BREATH1_TF2_SEL,0x08);
-				pmic_set_register_value(PMIC_ISINK_BREATH1_TON_SEL,0x01);
-				pmic_set_register_value(PMIC_ISINK_BREATH1_TOFF_SEL,0x01);
-				pmic_set_register_value(PMIC_ISINK_DIM1_DUTY,28);//90%
-				pmic_set_register_value(PMIC_ISINK_DIM1_FSEL,11);
-			}
-			else
-			{
-				pmic_set_register_value(PMIC_ISINK_CH1_MODE,PMIC_PWM_0);
-				pmic_set_register_value(PMIC_ISINK_CH1_STEP,ISINK_4);//20mA
-				if (level == 64) {
-					pmic_set_register_value(PMIC_ISINK_DIM1_DUTY,11);// (11/31)=35%
-				}
-				else if (level == 32) {
-					pmic_set_register_value(PMIC_ISINK_DIM1_DUTY,5);// (5/31)=16%
-				}
-				else {
-					pmic_set_register_value(PMIC_ISINK_DIM1_DUTY,28);// (28/31)=90%
-				}
-				pmic_set_register_value(PMIC_ISINK_DIM1_FSEL,ISINK_1KHZ);//1KHz
-			}
+			pmic_set_register_value(PMIC_ISINK_CH1_MODE,PMIC_PWM_0);
+			pmic_set_register_value(PMIC_ISINK_CH1_STEP,ISINK_3);//16mA
+			pmic_set_register_value(PMIC_ISINK_DIM1_DUTY,15);
+			pmic_set_register_value(PMIC_ISINK_DIM1_FSEL,ISINK_1KHZ);//1KHz
 			if (level) 
 			{
 				pmic_set_register_value(PMIC_ISINK_CH1_EN,NLED_ON);
@@ -623,6 +638,46 @@ int mt_brightness_set_pmic(enum mt65xx_led_pmic pmic_type, u32 level, u32 div)
 			mutex_unlock(&leds_pmic_mutex);
 			return 0;
 		}
+	/* liukun@wind-mobi.com 20150324 begin */
+	#ifdef WIND_PROJECT_E163_DRV
+		else if(pmic_type == MT65XX_LED_PMIC_NLED_ISINK2)
+		{
+		/*	if((button_flag_isink1==0) && (first_time == true)) {//button flag ==0, means this ISINK is not for button backlight
+				if(button_flag_isink0==0)
+				pmic_set_register_value(PMIC_ISINK_CH0_EN,NLED_OFF);  //sw workround for sync leds status
+				if(button_flag_isink1==0)
+				pmic_set_register_value(PMIC_ISINK_CH2_EN,NLED_OFF);
+				if(button_flag_isink3==0)
+				pmic_set_register_value(PMIC_ISINK_CH3_EN,NLED_OFF);
+				first_time = false;
+			}	
+			pmic_set_register_value(PMIC_RG_DRV_32K_CK_PDN,0x0); // Disable power down  
+			pmic_set_register_value(PMIC_RG_DRV_ISINK1_CK_PDN,0);
+			pmic_set_register_value(PMIC_RG_DRV_ISINK1_CK_CKSEL,0);
+			pmic_set_register_value(PMIC_ISINK_CH1_MODE,PMIC_PWM_0);
+			pmic_set_register_value(PMIC_ISINK_CH1_STEP,ISINK_3);//16mA
+			pmic_set_register_value(PMIC_ISINK_DIM1_DUTY,15);
+			pmic_set_register_value(PMIC_ISINK_DIM1_FSEL,ISINK_1KHZ);//1KHz*/
+			if (level) 
+			{
+				//pmic_set_register_value(PMIC_ISINK_CH1_EN,NLED_ON);
+				mt_set_gpio_mode(GPIO_KEYBOARD_LED, GPIO_MODE_00);
+				mt_set_gpio_dir(GPIO_KEYBOARD_LED, GPIO_DIR_OUT);
+				mt_set_gpio_out(GPIO_KEYBOARD_LED, GPIO_OUT_ONE);
+
+			}
+			else 
+			{
+				//pmic_set_register_value(PMIC_ISINK_CH1_EN,NLED_OFF);
+				mt_set_gpio_mode(GPIO_KEYBOARD_LED, GPIO_MODE_00);
+				mt_set_gpio_dir(GPIO_KEYBOARD_LED, GPIO_DIR_OUT);
+				mt_set_gpio_out(GPIO_KEYBOARD_LED, GPIO_OUT_ZERO);
+			}
+			mutex_unlock(&leds_pmic_mutex);
+			return 0;
+		}
+		#endif
+		/* liukun@wind-mobi.com 20150324 end */
 		mutex_unlock(&leds_pmic_mutex);	
 		return -1;
 }
@@ -818,7 +873,24 @@ void mt_mt65xx_led_set(struct led_classdev *led_cdev, enum led_brightness level)
 			LEDS_DEBUG("[LED]Set Backlight directly %d at time %lu, mappping level is %d \n",led_data->level,jiffies, level);
 			if(MT65XX_LED_MODE_CUST_BLS_PWM == led_data->cust.mode)
 			{
-				mt_mt65xx_led_set_cust(&led_data->cust, ((((1 << MT_LED_INTERNAL_LEVEL_BIT_CNT) - 1)*level + 127)/255));
+			    /*dixiaobing@wind-mobi.com 20150529 start*/
+				//mt_mt65xx_led_set_cust(&led_data->cust, ((((1 << MT_LED_INTERNAL_LEVEL_BIT_CNT) - 1)*level + 127)/255));
+                            #ifdef CONFIG_LCD_BACKLIGHT   
+                                if(als_enable_flag)
+                                {
+                                    mt_mt65xx_led_set_cust(&led_data->cust, ((((1 << MT_LED_INTERNAL_LEVEL_BIT_CNT) - 1)*level + 127)/255));
+                                }
+                                else
+                                {
+                                if(level <= 137)
+                                    mt_mt65xx_led_set_cust(&led_data->cust, ((94*level)/137));    //wenggaojian@wind-mobi.com 20150704
+                                else
+                                    mt_mt65xx_led_set_cust(&led_data->cust, 94 + ((1023 -94)*(level - 137)/118)); //wenggaojian@wind-mobi.com 20150704
+                                }
+                            #else
+                                mt_mt65xx_led_set_cust(&led_data->cust, ((((1 << MT_LED_INTERNAL_LEVEL_BIT_CNT) - 1)*level + 127)/255));
+                            #endif
+			   /*dixiaobing@wind-mobi.com 20150529 end*/
 			}
 			else
 			{

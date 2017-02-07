@@ -26,15 +26,7 @@
 #include <linux/of_irq.h>
 #endif
 
-#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
-#ifdef CONFIG_TOUCHSCREEN_SWEEP2WAKE
-#include <linux/input/sweep2wake.h>
-#endif
-#ifdef CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE
-#include <linux/input/doubletap2wake.h>
-#endif
-#endif
-
+#include <linux/time.h>
 #define KPD_NAME	"mtk-kpd"
 #define MTK_KP_WAKESOURCE	/* this is for auto set wake up source */
 
@@ -69,6 +61,23 @@ static void kpd_pwrkey_handler(unsigned long data);
 static DECLARE_TASKLET(kpd_pwrkey_tasklet, kpd_pwrkey_handler, 0);
 #endif
 
+#define FLIP_HALL_SUPPORT
+//#undef FLIP_HALL_SUPPORT
+
+
+/*-----------add by yudengwu@wind-mobi.com for z100 fliphall begin 1222*/
+#ifdef FLIP_HALL_SUPPORT
+static struct work_struct fliphall_work;
+static struct workqueue_struct * fliphall_workqueue = NULL;
+static int curr_hall_state = 1;
+
+static int  hall_node(void);
+
+static struct class *hall_class;
+static int hall_value;
+
+#endif
+/*-----------add by yudengwu@wind-mobi.com for z100 fliphall end 1222*/
 /* for keymap handling */
 static void kpd_keymap_handler(unsigned long data);
 static DECLARE_TASKLET(kpd_keymap_tasklet, kpd_keymap_handler, 0);
@@ -390,7 +399,95 @@ void kpd_pmic_rstkey_handler(unsigned long pressed)
 }
 
 /*********************************************************************/
+/* yudengwu@wind-mobi.com 20141222 begin */
+#ifdef FLIP_HALL_SUPPORT
+static void hall_eint_polarity_reverse_hallon()
+{
+	if(CUST_EINT_HALL_1_TYPE == CUST_EINTF_TRIGGER_LOW)
+	{printk("[darren] hall on high set 0");
+		mt_eint_set_polarity(CUST_EINT_HALL_1_NUM,0);
+	}
+	else
+	{printk("[darren] hall on low set 1");
+		mt_eint_set_polarity(CUST_EINT_HALL_1_NUM,1);
+	}
+}
+static void hall_eint_polarity_reverse_halloff()
+{
+	if(CUST_EINT_HALL_1_TYPE == CUST_EINTF_TRIGGER_LOW)
+	{printk("[darren] hall off high set 1");
+		mt_eint_set_polarity(CUST_EINT_HALL_1_NUM,1);
+	}
+	else
+	{printk("[darren] hall off low set 0");
+		mt_eint_set_polarity(CUST_EINT_HALL_1_NUM,0);
+	}
+}
+#endif
 
+#ifdef FLIP_HALL_SUPPORT
+static void kpd_fliphall_work_callback(struct work_struct *work)
+{
+    int  count =0, inversecount=0;
+    bool Gpio_signal = 0;
+    mt_eint_mask(CUST_EINT_HALL_1_NUM);
+    if(curr_hall_state) 
+	{
+		printk("[darren]--------------------- hall in\n");
+		
+        	input_report_key(kpd_input_dev, KEY_F11, 1);
+		input_sync(kpd_input_dev);
+    		input_report_key(kpd_input_dev, KEY_F11, 0);
+		input_sync(kpd_input_dev);
+
+		input_report_switch(kpd_input_dev, SW_LID, 1);  //modify yudengwu@wind-mobi.com
+		input_sync(kpd_input_dev);                      //modify yudengwu@wind-mobi.com
+
+
+
+       // mt_set_gpio_mode(GPIO_HALL_1_PIN, GPIO_HALL_1_PIN_M_GPIO);
+      //  mt_set_gpio_dir(GPIO_HALL_1_PIN, GPIO_DIR_IN);
+       hall_eint_polarity_reverse_halloff();// mt_eint_set_polarity(CUST_EINT_HALL_1_NUM, 1);
+	   hall_value = 2;
+	   curr_hall_state = 0;
+        mt_eint_unmask(CUST_EINT_HALL_1_NUM);
+    } 
+	else
+	{
+		printk("[darren]---------------------- hall out\n");
+
+		
+   	     input_report_key(kpd_input_dev, KEY_F12, 1);
+	     input_sync(kpd_input_dev);
+   	     input_report_key(kpd_input_dev, KEY_F12, 0);	
+   	     input_sync(kpd_input_dev);      
+
+		input_report_switch(kpd_input_dev, SW_LID, 0);   //modify yudengwu@wind-mobi.com
+		input_sync(kpd_input_dev);                       //modify yudengwu@wind-mobi.com
+
+
+		
+       // mt_set_gpio_mode(GPIO_HALL_1_PIN, GPIO_HALL_1_PIN_M_GPIO);
+      //  mt_set_gpio_dir(GPIO_HALL_1_PIN, GPIO_DIR_IN);
+        hall_eint_polarity_reverse_hallon();//mt_eint_set_polarity(CUST_EINT_HALL_1_NUM, 0);
+	 hall_value = 3;		
+		curr_hall_state = 1;
+        mt_eint_unmask(CUST_EINT_HALL_1_NUM);
+    }
+
+}
+
+void kpd_fliphall_eint_handler()
+{
+    int ret ;
+	printk("[darren] kpd_fliphall_eint_handler\n");
+	ret = queue_work(fliphall_workqueue, &fliphall_work);
+	
+    if(!ret)
+        printk("[darren] fliphall_irq_handler:fliphall_work return %d\n", ret);
+}
+#endif
+/*-----------add by yudengwu@wind-mobi.com for z100 fliphall end  1222*/
 /*********************************************************************/
 static void kpd_keymap_handler(unsigned long data)
 {
@@ -838,6 +935,10 @@ static int kpd_pdrv_probe(struct platform_device *pdev)
 		__set_bit(kpd_auto_keymap[i], kpd_input_dev->keybit);
 #endif
 
+__set_bit(EV_SW, kpd_input_dev->evbit);       //modify yudengwu@wind-mobi.com
+__set_bit(SW_LID, kpd_input_dev->swbit);      //modify yudengwu@wind-mobi.com
+
+
 #if KPD_HAS_SLIDE_QWERTY
 	__set_bit(EV_SW, kpd_input_dev->evbit);
 	__set_bit(SW_LID, kpd_input_dev->swbit);
@@ -845,15 +946,6 @@ static int kpd_pdrv_probe(struct platform_device *pdev)
 
 #ifdef KPD_PMIC_RSTKEY_MAP
 	__set_bit(KPD_PMIC_RSTKEY_MAP, kpd_input_dev->keybit);
-#endif
-
-#ifdef CONFIG_TOUCHSCREEN_PREVENT_SLEEP
-#ifdef CONFIG_TOUCHSCREEN_SWEEP2WAKE
-	sweep2wake_setdev(kpd_input_dev);
-#endif
-#ifdef CONFIG_TOUCHSCREEN_DOUBLETAP2WAKE
-	doubletap2wake_setdev(kpd_input_dev);
-#endif
 #endif
 
 #ifdef KPD_KEY_MAP
@@ -913,7 +1005,49 @@ static int kpd_pdrv_probe(struct platform_device *pdev)
 		return err;
 	}
     pr_warn(KPD_SAY "%s Done\n", __FUNCTION__);
+/*-----------add by yudengwu@wind-mobi.com for Z100 fliphall begin*/
+#ifdef FLIP_HALL_SUPPORT
+
+	hall_node();    //modify yudengwu
+        __set_bit(EV_SW, kpd_input_dev->evbit);
+		
+	kpd_input_dev->keybit[BIT_WORD(KEY_F9)]|=BIT_MASK(KEY_F9);
+	kpd_input_dev->keybit[BIT_WORD(KEY_F8)]|=BIT_MASK(KEY_F8);
+	kpd_input_dev->keybit[BIT_WORD(KEY_F12)]|=BIT_MASK(KEY_F12);
+	kpd_input_dev->keybit[BIT_WORD(KEY_F11)]|=BIT_MASK(KEY_F11);
+	kpd_input_dev->keybit[BIT_WORD(KEY_POWER)]|=BIT_MASK(KEY_POWER);
+        fliphall_workqueue = create_singlethread_workqueue("Fliphall");
+		if(!fliphall_workqueue)
+		{
+			printk("-ENOMEM for fliphall_workqueue\n");
+			err = -ENOMEM;
+			goto ERR_EXIT;
+		}
+			
+        INIT_WORK(&fliphall_work, kpd_fliphall_work_callback);
+
+
+		
+		mt_eint_set_hw_debounce(CUST_EINT_HALL_1_NUM, CUST_EINT_HALL_1_DEBOUNCE_CN);
+		mt_eint_registration(CUST_EINT_HALL_1_NUM, CUST_EINT_HALL_1_TYPE, kpd_fliphall_eint_handler, 0);
+
+	//	mt_eint_registration(CUST_EINT_HALL_1_NUM, EINTF_TRIGGER_RISING, kpd_fliphall_eint_handler, 1);
+		
+		mt_eint_unmask(CUST_EINT_HALL_1_NUM);	
+		
+        queue_work(fliphall_workqueue, &fliphall_work);
+#endif
+/*-----------add by yudengwu@wind-mobi.com for Z100 fliphall end*/
 	return 0;
+
+#ifdef FLIP_HALL_SUPPORT
+ERR_EXIT:
+    if(fliphall_workqueue)
+    {
+        destroy_workqueue(fliphall_workqueue);
+    }
+	return err;
+#endif
 }
 
 /* should never be called */
@@ -930,7 +1064,9 @@ static int kpd_pdrv_suspend(struct platform_device *pdev, pm_message_t state)
 	if (call_status == 2) {
 		kpd_print("kpd_early_suspend wake up source enable!! (%d)\n", kpd_suspend);
 	} else {
-		kpd_wakeup_src_setting(0);
+//gemingming@wind-mobi.com modify for deep sleep can not awake system begin
+		kpd_wakeup_src_setting(1);
+//gemingming@wind-mobi.com modify for deep sleep can not awake system end
 		kpd_print("kpd_early_suspend wake up source disable!! (%d)\n", kpd_suspend);
 	}
 #endif
@@ -1006,6 +1142,50 @@ static struct sb_handler kpd_sb_handler_desc = {
 #endif
 #endif
 
+/**add by yudengwu 2015.1.1**/
+
+#ifdef FLIP_HALL_SUPPORT
+
+static ssize_t hall_show(struct class *class,
+				struct class_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", hall_value);
+}
+
+static struct class_attribute hall_state_version =
+	__ATTR(hall_state, 0666, hall_show, NULL);
+
+static int  hall_node(void)
+{
+	printk("[darren] -------------hall_node\n");
+
+	int err ;
+
+	hall_class = class_create(THIS_MODULE, "hall_class");
+	if (IS_ERR(hall_class))
+		{
+			printk("-------register hall class err\n");
+			return PTR_ERR(hall_class);
+		}
+
+	err = class_create_file(hall_class, &hall_state_version);
+	if (err) {
+		printk("cannot create sysfs file\n");	
+	}
+	
+	return 0;
+}
+
+static void hall_unnode(void)
+{
+	class_destroy(hall_class);
+	class_remove_file(hall_class, &hall_state_version);
+}
+
+#endif
+
+/**add by yudengwu 2015.1.1**/
+
 static int __init kpd_mod_init(void)
 {
 	int r;
@@ -1031,6 +1211,9 @@ static int __init kpd_mod_init(void)
 /* should never be called */
 static void __exit kpd_mod_exit(void)
 {
+#ifdef FLIP_HALL_SUPPORT
+	hall_unnode();       //modify yudengwu
+#endif
 }
 module_init(kpd_mod_init);
 module_exit(kpd_mod_exit);

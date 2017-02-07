@@ -28,7 +28,10 @@ endif
 ifneq ($(CONFIG_MTK_GIC),y)
 obj-y   += irq/
 endif
+# modify yudengwu 
+obj-y	+= hardwareinfo/   
 
+obj-$(CONFIG_MTK_CPU_STRESS)	+= cpu_stress/
 obj-$(CONFIG_MTK_LASTPC)	    += lastpc/
 obj-$(CONFIG_MTK_DBG_DUMP) += dbg_dump/
 
@@ -163,8 +166,13 @@ obj-$(CONFIG_MTK_NFC) += nfc/
 obj-$(CONFIG_ZRAM)	+= mlog/
 
 #obj-y	+= cam_cal/src/$(MTK_PLATFORM)/dummy_eeprom/
-
+#dixiaobing@wind-mobi.com 20150710 start
+obj-$(CONFIG_MTK_CAM_CAL_S5K3L2OTP_SUPPORT) += cam_cal/src/$(MTK_PLATFORM)/s5k3l2_eeprom/
+#dixiaobing@wind-mobi.com 20150710 end
 obj-y	+= lens/
+#dixiaobing@wind-mobi.com 20150710 start
+obj-$(CONFIG_MTK_TOUCHKEY) += touchkey/
+#dixiaobing@wind-mobi.com 20150710 end
 obj-y	+= imgsensor/src/
 
 
@@ -257,6 +265,8 @@ obj-y	+= freqhopping/
 obj-y	+= selinux_warning/
 # MTK PASR SW flow
 obj-$(CONFIG_MTKPASR)	+= mtkpasr/
+
+obj-$(CONFIG_MTK_TC1_FEATURE)	+= tc1_interface/
 
 obj-$(CONFIG_MTK_SWITCH_TX_POWER) += sw_tx_power/
 

@@ -22,6 +22,9 @@ obj-y	+= aee/
 obj-$(CONFIG_MTK_FMRADIO)	+= fmradio/
 obj-$(CONFIG_MTK_GPS)	    += gps/
 
+#modify yudengwu
+obj-y	+= hardwareinfo/
+
 obj-y	+= m4u/
 #obj-y	+= mhl/
 obj-y	+= mtprof/
@@ -118,7 +121,9 @@ ifneq ($(CONFIG_MTK_FPGA),y)
 obj-y	+= gpio/
 obj-y   += keypad/
 endif
-
+#dixiaobing@wind-mobi.com 20150710 start
+obj-$(CONFIG_MTK_TOUCHKEY)	+= touchkey/
+#dixiaobing@wind-mobi.com 20150710 end
 obj-y	+= eint/
 obj-y	+= uart/
 obj-y	+= pmic_wrap/

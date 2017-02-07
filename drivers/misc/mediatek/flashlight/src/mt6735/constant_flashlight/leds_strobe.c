@@ -60,8 +60,10 @@
 #define PK_TRC_FUNC(f)              pr_debug(TAG_NAME "<%s>\n", __FUNCTION__)
 #define PK_TRC_VERBOSE(fmt, arg...) pr_debug(TAG_NAME fmt, ##arg)
 #define PK_ERROR(fmt, arg...)       pr_err(TAG_NAME "%s: " fmt, __FUNCTION__ ,##arg)
+/* liukun@wind-mobi.com 20150310 begin */
 
-
+#define LED_SKY81294
+/* liukun@wind-mobi.com 20150310 end */
 #define DEBUG_LEDS_STROBE
 #ifdef  DEBUG_LEDS_STROBE
 	#define PK_DBG PK_DBG_FUNC
@@ -95,6 +97,10 @@ static DECLARE_MUTEX(g_strobeSem);
 
 
 #define STROBE_DEVICE_ID 0xC6
+/* liukun@wind-mobi.com 20141231 begin */
+#define I2C_STROBE_MAIN_SLAVE_7_BIT_ADDR 0x63
+#define I2C_STROBE_MAIN_CHANNEL 2
+/* liukun@wind-mobi.com 20141231 end */
 
 
 static struct work_struct workTimeOut;
@@ -107,9 +113,16 @@ static int g_bLtVersion=0;
 /*****************************************************************************
 Functions
 *****************************************************************************/
-extern int iWriteRegI2C(u8 *a_pSendData , u16 a_sizeSendData, u16 i2cId);
-extern int iReadRegI2C(u8 *a_pSendData , u16 a_sizeSendData, u8 * a_pRecvData, u16 a_sizeRecvData, u16 i2cId);
 static void work_timeOutFunc(struct work_struct *data);
+#ifdef LED_SKY81294
+extern  int is_ic_sky81294(void);
+extern void SKY81294_torch_mode(int g_duty);
+extern void SKY81294_flash_mode(int g_duty);
+extern void SKY81294_shutdown_mode(void);
+/* liukun@wind-mobi.com 20150509 begin */
+extern void SKY81294_torch_set_level(int level);
+/* liukun@wind-mobi.com 20150509 end */
+#endif
 
 static struct i2c_client *LM3642_i2c_client = NULL;
 
@@ -300,70 +313,127 @@ int readReg(int reg)
     val = LM3642_read_reg(LM3642_i2c_client, reg);
     return (int)val;
 }
-
-int FL_Enable(void)
+/* liukun@wind-mobi.com 20150509 begin */
+void FL_Torch(int level)
 {
-	char buf[2];
-//	char bufR[2];
-    if(g_duty<0)
-        g_duty=0;
-    else if(g_duty>16)
-        g_duty=16;
-  if(g_duty<=2)
+  char buf[2];
+  if(level>7)
+    level =7;
+  else if(level<0)
+	level=0;
+  PK_DBG(" liukun FL_Torch level=%d\n",level);
+  if(is_ic_sky81294()== 0x8129)
   {
-        int val;
-        if(g_bLtVersion==1)
-        {
-            if(g_duty==0)
-                val=3;
-            else if(g_duty==1)
-                val=5;
-            else //if(g_duty==2)
-                val=7;
-        }
-        else
-        {
-            if(g_duty==0)
-                val=1;
-            else if(g_duty==1)
-                val=2;
-            else //if(g_duty==2)
-                val=3;
-        }
-        buf[0]=9;
-        buf[1]=val<<4;
-        //iWriteRegI2C(buf , 2, STROBE_DEVICE_ID);
-        LM3642_write_reg(LM3642_i2c_client, buf[0], buf[1]);
-
-        buf[0]=10;
-        buf[1]=0x02;
-        //iWriteRegI2C(buf , 2, STROBE_DEVICE_ID);
-        LM3642_write_reg(LM3642_i2c_client, buf[0], buf[1]);
+    SKY81294_torch_set_level(level);
   }
   else
   {
-    int val;
-    val = (g_duty-1);
     buf[0]=9;
-	  buf[1]=val;
-	  //iWriteRegI2C(buf , 2, STROBE_DEVICE_ID);
-	  LM3642_write_reg(LM3642_i2c_client, buf[0], buf[1]);
+    buf[1]=level<<4;
+    LM3642_write_reg(LM3642_i2c_client, buf[0], buf[1]);
+	
+    buf[0]=10;
+    buf[1]=0x02;
+    LM3642_write_reg(LM3642_i2c_client, buf[0], buf[1]);
 
-	  buf[0]=10;
-	  buf[1]=0x03;
-	  //iWriteRegI2C(buf , 2, STROBE_DEVICE_ID);
-	  LM3642_write_reg(LM3642_i2c_client, buf[0], buf[1]);
+	buf[0]=0xa;
+	buf[1]=0x72;
+	LM3642_write_reg(LM3642_i2c_client, buf[0], buf[1]);
+	if(mt_set_gpio_mode(GPIO_FLASH_LED_EN,GPIO_MODE_00)){PK_DBG("[constant_flashlight] set gpio mode failed!! \n");}
+	if(mt_set_gpio_dir(GPIO_FLASH_LED_EN,GPIO_DIR_OUT)){PK_DBG("[constant_flashlight] set gpio dir failed!! \n");}
+	if(mt_set_gpio_out(GPIO_FLASH_LED_EN,GPIO_OUT_ONE)){PK_DBG("[constant_flashlight] set gpio failed!! \n");}
   }
-	PK_DBG(" FL_Enable line=%d\n",__LINE__);
-
-    readReg(0);
-	readReg(1);
-	readReg(6);
-	readReg(8);
-	readReg(9);
-	readReg(0xa);
-	readReg(0xb);
-
+}
+/* liukun@wind-mobi.com 20150509 end */
+int FL_Enable(void)
+{
+	char buf[2];
+	if(is_ic_sky81294()== 0x8129)
+    {
+      if(g_duty <= 2)
+      {
+       //torch mode       
+	   PK_DBG(" FL_Enable sky81294 torch mode\n");
+       SKY81294_torch_mode(g_duty);
+      }	
+      else
+      {
+       //flash mode
+       PK_DBG(" FL_Enable sky81294 flash mode\n");
+       SKY81294_flash_mode(g_duty-1);
+      }
+	}
+	else
+    {
+   //	char bufR[2];
+       if(g_duty<0)
+           g_duty=0;
+       else if(g_duty>16)
+           g_duty=16;
+     if(g_duty<=2)
+     {
+           int val;
+           if(g_bLtVersion==1)
+           {
+               if(g_duty==0)
+                   val=3;
+               else if(g_duty==1)
+                   val=5;
+               else //if(g_duty==2)
+                   val=7;
+           }
+           else
+           {
+               if(g_duty==0)
+                   val=1;
+               else if(g_duty==1)
+                   val=2;
+               else //if(g_duty==2)
+                   val=3;
+           }
+           buf[0]=9;
+           buf[1]=val<<4;
+           LM3642_write_reg(LM3642_i2c_client, buf[0], buf[1]);
+   
+           buf[0]=10;
+           buf[1]=0x02;
+           LM3642_write_reg(LM3642_i2c_client, buf[0], buf[1]);
+		   buf[0]=0xa;
+		   buf[1]=0x72;
+		   LM3642_write_reg(LM3642_i2c_client, buf[0], buf[1]);
+		   if(mt_set_gpio_mode(GPIO_FLASH_LED_EN,GPIO_MODE_00)){PK_DBG("[constant_flashlight] set gpio mode failed!! \n");}
+		   if(mt_set_gpio_dir(GPIO_FLASH_LED_EN,GPIO_DIR_OUT)){PK_DBG("[constant_flashlight] set gpio dir failed!! \n");}
+		   if(mt_set_gpio_out(GPIO_FLASH_LED_EN,GPIO_OUT_ONE)){PK_DBG("[constant_flashlight] set gpio failed!! \n");}
+     }
+     else
+     {
+       int val;
+       val = (g_duty-1);
+       buf[0]=9;
+   	  buf[1]=val;
+   	  LM3642_write_reg(LM3642_i2c_client, buf[0], buf[1]);
+   
+   	  buf[0]=10;
+   	  buf[1]=0x03;
+   	  LM3642_write_reg(LM3642_i2c_client, buf[0], buf[1]);
+     }
+   	PK_DBG(" FL_Enable line=%d\n",__LINE__);
+   
+       readReg(0);
+   	readReg(1);
+   	readReg(6);
+   	readReg(8);
+   	readReg(9);
+   	readReg(0xa);
+   	readReg(0xb);
+   	/* liukun@wind-mobi.com 20150310 begin */
+       #ifdef	FLASHLIGHT_GPIO_SUPPORT	
+    	if(mt_set_gpio_mode(GPIO_FLASH_LED_EN,GPIO_MODE_00)){PK_DBG("[constant_flashlight] set gpio mode failed!! \n");}
+        if(mt_set_gpio_dir(GPIO_FLASH_LED_EN,GPIO_DIR_OUT)){PK_DBG("[constant_flashlight] set gpio dir failed!! \n");}
+        if(mt_set_gpio_out(GPIO_FLASH_LED_EN,GPIO_OUT_ONE)){PK_DBG("[constant_flashlight] set gpio failed!! \n");}
+       #endif
+   	/* liukun@wind-mobi.com 20150310 end */
+	}
     return 0;
 }
 
@@ -371,13 +441,28 @@ int FL_Enable(void)
 
 int FL_Disable(void)
 {
-		char buf[2];
-
-///////////////////////
-	buf[0]=10;
-	buf[1]=0x00;
-	//iWriteRegI2C(buf , 2, STROBE_DEVICE_ID);
-	LM3642_write_reg(LM3642_i2c_client, buf[0], buf[1]);
+	char buf[2];
+	if(is_ic_sky81294()== 0x8129)
+	{
+	 SKY81294_shutdown_mode();
+	}
+	else
+    {
+       
+        
+		if(mt_set_gpio_mode(GPIO_FLASH_LED_EN,GPIO_MODE_00)){PK_DBG("[constant_flashlight] set gpio mode failed!! \n");}
+		if(mt_set_gpio_dir(GPIO_FLASH_LED_EN,GPIO_DIR_OUT)){PK_DBG("[constant_flashlight] set gpio dir failed!! \n");}
+		if(mt_set_gpio_out(GPIO_FLASH_LED_EN,GPIO_OUT_ZERO)){PK_DBG("[constant_flashlight] set gpio failed!! \n");}
+      
+		
+  	   buf[0]=0xa;
+  	   buf[1]=0x00;
+  	   LM3642_write_reg(LM3642_i2c_client, buf[0], buf[1]);
+		
+       buf[0]=10;
+       buf[1]=0x00;
+   	   LM3642_write_reg(LM3642_i2c_client, buf[0], buf[1]);
+  	}
 	PK_DBG(" FL_Disable line=%d\n",__LINE__);
     return 0;
 }
@@ -395,28 +480,21 @@ int FL_dim_duty(kal_uint32 duty)
 int FL_Init(void)
 {
    int regVal0;
-  char buf[2];
-
-  buf[0]=0xa;
+   char buf[2];
+   if(is_ic_sky81294()!= 0x8129)
+   {
+    buf[0]=0xa;
 	buf[1]=0x0;
-	//iWriteRegI2C(buf , 2, STROBE_DEVICE_ID);
 	LM3642_write_reg(LM3642_i2c_client, buf[0], buf[1]);
 
 	buf[0]=0x8;
 	buf[1]=0x47;
-	//iWriteRegI2C(buf , 2, STROBE_DEVICE_ID);
 	LM3642_write_reg(LM3642_i2c_client, buf[0], buf[1]);
 
 	buf[0]=9;
 	buf[1]=0x35;
-	//iWriteRegI2C(buf , 2, STROBE_DEVICE_ID);
 	LM3642_write_reg(LM3642_i2c_client, buf[0], buf[1]);
 
-
-
-
-	//static int LM3642_read_reg(struct i2c_client *client, u8 reg)
-	//regVal0 = readReg(0);
 	regVal0 = LM3642_read_reg(LM3642_i2c_client, 0);
 
 	if(regVal0==1)
@@ -439,7 +517,7 @@ int FL_Init(void)
     */
 
 
-
+    }
 
     PK_DBG(" FL_Init line=%d\n",__LINE__);
     return 0;

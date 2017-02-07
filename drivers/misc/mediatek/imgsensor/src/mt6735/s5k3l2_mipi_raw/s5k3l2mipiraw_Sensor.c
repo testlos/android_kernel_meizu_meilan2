@@ -28,6 +28,7 @@
 #include <asm/atomic.h>
 //#include <asm/system.h>
 #include <linux/xlog.h>
+#include <linux/slab.h>
 
 #include "kd_camera_hw.h"
 #include "kd_imgsensor.h"
@@ -43,10 +44,12 @@
 /****************************   Modify end    *******************************************/
 
 #define LOG_INF(format, args...)    xlog_printk(ANDROID_LOG_INFO   , PFX, "[%s] " format, __FUNCTION__, ##args)
-
 static DEFINE_SPINLOCK(imgsensor_drv_lock);
-
-
+#ifdef CONFIG_MTK_CAM_CAL
+extern int read_s5k3l2_eeprom_mtk_fmt(void);
+extern void read_s5k3l2_eeprom_awb(void);
+extern u8 read_s5k3l2_eeprom_vendor_id(void);
+#endif
 static imgsensor_info_struct imgsensor_info = {
     .sensor_id = S5K3L2_SENSOR_ID,        //record sensor id defined in Kd_imgsensor.h
 
@@ -76,14 +79,14 @@ static imgsensor_info_struct imgsensor_info = {
     },
     .cap1 = {
         .pclk = 432000000,
-        .linelength = 4512,
+        .linelength = 9056,
         .framelength = 3180,
         .startx = 0,
         .starty = 0,
         .grabwindow_width = 4192,
         .grabwindow_height = 3104,
         .mipi_data_lp2hs_settle_dc = 85,
-        .max_framerate = 300,
+        .max_framerate = 150,
     },
     .normal_video = {
         .pclk = 432000000,              
@@ -98,12 +101,12 @@ static imgsensor_info_struct imgsensor_info = {
     },
     .hs_video = {
         .pclk = 448000000,
-        .linelength = 4560,
-        .framelength = 818,
-        .startx = 4,
-        .starty = 4,
-        .grabwindow_width = 640,
-        .grabwindow_height = 480,
+        .linelength = 4496,   //4560,
+        .framelength = 825,   //818,
+        .startx = 0,        //4,
+        .starty = 0,        //4,
+        .grabwindow_width = 1280,
+        .grabwindow_height = 720,
         .mipi_data_lp2hs_settle_dc = 85,
         .max_framerate = 1200,
     },
@@ -134,11 +137,11 @@ static imgsensor_info_struct imgsensor_info = {
     .hs_video_delay_frame = 3,    //enter high speed video  delay frame num
     .slim_video_delay_frame = 3,//enter slim video delay frame num
 
-    .isp_driving_current = ISP_DRIVING_8MA,
+    .isp_driving_current = ISP_DRIVING_4MA, //oujiacheng@wind-mobi.com 2015.6.19 modify 8mA to 4mA
     .sensor_interface_type = SENSOR_INTERFACE_TYPE_MIPI,//sensor_interface_type
     .mipi_sensor_type = MIPI_OPHY_NCSI2, //0,MIPI_OPHY_NCSI2;  1,MIPI_OPHY_CSI2
-    .mipi_settle_delay_mode = MIPI_SETTLEDELAY_AUTO,//0,MIPI_SETTLEDELAY_AUTO; 1,MIPI_SETTLEDELAY_MANNUAL
-    .sensor_output_dataformat = SENSOR_OUTPUT_FORMAT_RAW_Gr,	//Gr,
+    .mipi_settle_delay_mode = 1,//0,MIPI_SETTLEDELAY_AUTO; 1,MIPI_SETTLEDELAY_MANNUAL
+    .sensor_output_dataformat = SENSOR_OUTPUT_FORMAT_RAW_Gb,	//Gr,
     .mclk = 24,//mclk value, suggest 24 or 26 for 24Mhz or 26Mhz
     .mipi_lane_num = SENSOR_MIPI_4_LANE,
     .i2c_addr_table = {0x20, 0x5a, 0xff},//record sensor support all write id addr, only supprt 4must end with 0xff
@@ -167,7 +170,7 @@ static SENSOR_WINSIZE_INFO_STRUCT imgsensor_winsize_info[5] =
 {{ 4192, 3104, 0000, 0000, 4192, 3104, 2096, 1552, 0000, 0000, 2096, 1552, 000, 0000, 2096, 1552}, // Preview 
  { 4192, 3104, 0000, 0000, 4192, 3104, 4192, 3104, 0000, 0000, 4192, 3104, 000, 0000, 4192, 3104}, // capture 
  { 4192, 3104, 0000, 0000, 4192, 3104, 2096, 1552, 0000, 0000, 2096, 1552, 000, 0000, 2096, 1552}, // video 
- { 4192, 3104,  174,  108, 3888, 2928, 648,   488, 0000, 0000, 648,  488,  004, 0004, 640,  480}, //hight speed video 
+ { 4208, 3120,	184,  480, 3840, 2160, 1280,  720, 0000, 0000, 1280,  720, 000, 0000, 1280,  720}, //hight speed video 
  { 4192, 3104,  000,  000, 4192, 3104, 2096, 1552, 0000, 0000, 2096, 1552, 000, 0000, 2096, 1552}
 };
 static kal_uint16 read_cmos_sensor(kal_uint32 addr)
@@ -189,9 +192,6 @@ static void write_cmos_sensor1(kal_uint32 addr, kal_uint32 para)
 	kdSetI2CSpeed(imgsensor_info.i2c_speed);
 	iWriteRegI2C(puSendCmd, 4, imgsensor.i2c_write_id);
 }
-
-
-
 static void write_cmos_sensor(kal_uint32 addr, kal_uint32 para)
 {
 	char puSendCmd[4] = {(char)(addr >> 8), (char)(addr & 0xFF), (char)(para & 0xFF)};
@@ -454,8 +454,8 @@ static void sensor_init(void)
 	write_cmos_sensor1(0x6F12, 0x0001);
 	mDELAY(3);
 
-	write_cmos_sensor(0x0101, 0x00);  //mirror
-  write_cmos_sensor1(0x6028, 0xD000);
+	write_cmos_sensor(0x0101, 0x03);  //mirror
+   write_cmos_sensor1(0x6028, 0xD000);
 	write_cmos_sensor1(0x602A, 0x6214);
 	write_cmos_sensor1(0x6F12, 0x7970);
 	write_cmos_sensor1(0x602A, 0x6218);
@@ -1607,6 +1607,59 @@ static void preview_setting(void)
 
 static void capture_setting(kal_uint16 currefps)
 {	
+	if (currefps == 150) 
+	{
+	write_cmos_sensor(0x0100, 0x00  );
+	mDELAY(10);                        
+  	check_output_stream_off();                        
+	write_cmos_sensor1(0x0200, 0x000A);
+	write_cmos_sensor1(0x0136, 0x1800);
+	write_cmos_sensor1(0x0304, 0x0006);
+	write_cmos_sensor1(0x0306, 0x00D8);
+	write_cmos_sensor1(0x030C, 0x0006);
+	write_cmos_sensor1(0x030E, 0x00A8);//pclk
+	write_cmos_sensor1(0x0302, 0x0001);
+	write_cmos_sensor1(0x0300, 0x0002);
+	write_cmos_sensor1(0x030A, 0x0001);
+	write_cmos_sensor1(0x0308, 0x0008);
+	write_cmos_sensor(0x304F, 0x00  );
+	write_cmos_sensor(0x35D9, 0x00  );
+	write_cmos_sensor1(0x303A, 0x02BC);
+	write_cmos_sensor(0x0B05, 0x01  );
+	write_cmos_sensor(0x0B08, 0x01  );
+	write_cmos_sensor(0x380E, 0x01  );
+	write_cmos_sensor(0x3027, 0x10  );
+	write_cmos_sensor1(0x0202, 0x0014);
+	write_cmos_sensor1(0x0340, 0x0c6c);
+	write_cmos_sensor1(0x0342, 0x2360);//
+	write_cmos_sensor1(0x034C, 0x1060);
+	write_cmos_sensor1(0x034E, 0x0C20);
+	write_cmos_sensor(0x0114, 0x03  );
+	write_cmos_sensor1(0x0344, 0x000C);
+	write_cmos_sensor1(0x0346, 0x000C);
+	write_cmos_sensor1(0x0348, 0x106b);
+	write_cmos_sensor1(0x034A, 0x0C2B);
+	write_cmos_sensor1(0x3010, 0x0000);
+	write_cmos_sensor1(0x3012, 0x0000);
+	write_cmos_sensor1(0x0386, 0x0001);
+	write_cmos_sensor1(0x0382, 0x0001);
+	write_cmos_sensor(0x0900, 0x00  );
+	write_cmos_sensor(0x0901, 0x11  );
+	write_cmos_sensor(0x3027, 0x10  );
+	write_cmos_sensor1(0x0400, 0x0000);
+	write_cmos_sensor1(0x0404, 0x0010);
+	write_cmos_sensor(0x0111, 0x02  );
+	write_cmos_sensor1(0x0112, 0x0A0A);
+	write_cmos_sensor(0x302A, 0x00  );
+	write_cmos_sensor1(0x0500, 0x0000);
+	write_cmos_sensor1(0x303E, 0x00A0);
+	write_cmos_sensor(0x30DE, 0x01  );
+	write_cmos_sensor(0x0100, 0x01  );
+	mDELAY(10);
+	check_output_stream_on();
+	}
+	else
+	{
 	write_cmos_sensor(0x0100, 0x00  );
 	mDELAY(10);                        
   check_output_stream_off();                        
@@ -1656,6 +1709,7 @@ static void capture_setting(kal_uint16 currefps)
 	mDELAY(10);
 	check_output_stream_on();
 	}
+}
 
 static void normal_video_setting(kal_uint16 currefps)
 {
@@ -1669,83 +1723,83 @@ static void hs_video_setting()
 	write_cmos_sensor(0x6F12, 0x00  );
 	mDELAY(10);                         
 	check_output_stream_off();                      
-	write_cmos_sensor1(0x602A, 0x0200);
-	write_cmos_sensor1(0x6F12, 0x000A);
-	write_cmos_sensor1(0x6F12, 0x0100);
-	write_cmos_sensor1(0x602A, 0x0136);
-	write_cmos_sensor1(0x6F12, 0x1800);
-	write_cmos_sensor1(0x602A, 0x0304);
-	write_cmos_sensor1(0x6F12, 0x0006);
-	write_cmos_sensor1(0x6F12, 0x00E0);
-	write_cmos_sensor1(0x602A, 0x030C);
-	write_cmos_sensor1(0x6F12, 0x0006);
-	write_cmos_sensor1(0x6F12, 0x00C6);
-	write_cmos_sensor1(0x602A, 0x0300);
-	write_cmos_sensor1(0x6F12, 0x0002);
-	write_cmos_sensor1(0x6F12, 0x0001);
-	write_cmos_sensor1(0x602A, 0x0308);
-	write_cmos_sensor1(0x6F12, 0x0008);
-	write_cmos_sensor1(0x6F12, 0x0001);
-	write_cmos_sensor1(0x602A, 0x304F);
-	write_cmos_sensor1(0x6F12, 0x0001);
-	write_cmos_sensor1(0x602A, 0x35D9);
-	write_cmos_sensor(0x6F12, 0x03  );
-	write_cmos_sensor1(0x602A, 0x303A);
-	write_cmos_sensor1(0x6F12, 0x017C);
-	write_cmos_sensor1(0x602A, 0x0B05);
-	write_cmos_sensor(0x6F12, 0x01  );
-	write_cmos_sensor1(0x602A, 0x0B08);
-	write_cmos_sensor(0x6F12, 0x01  );
-	write_cmos_sensor1(0x602A, 0x380E);
-	write_cmos_sensor(0x6F12, 0x01  );
-	write_cmos_sensor1(0x602A, 0x0342);
-	write_cmos_sensor1(0x6F12, 0x11D0);
-	write_cmos_sensor1(0x602A, 0x0340);
-	write_cmos_sensor1(0x6F12, 0x0332);
-	write_cmos_sensor1(0x602A, 0x034C);
-	write_cmos_sensor1(0x6F12, 0x0288);
-	write_cmos_sensor1(0x6F12, 0x01E8);
-	write_cmos_sensor1(0x602A, 0x0114);
-	write_cmos_sensor(0x6F12, 0x03  );
-	write_cmos_sensor1(0x602A, 0x0344);
-	write_cmos_sensor1(0x6F12, 0x00BA);
-	write_cmos_sensor1(0x6F12, 0x0078);
-	write_cmos_sensor1(0x6F12, 0x0FE9);
-	write_cmos_sensor1(0x6F12, 0x0BE7);
-	write_cmos_sensor1(0x602A, 0x3010);
-	write_cmos_sensor1(0x6F12, 0x0000);
-	write_cmos_sensor1(0x6F12, 0x0000);
-	write_cmos_sensor1(0x602A, 0x0386);
-	write_cmos_sensor1(0x6F12, 0x000B);
-	write_cmos_sensor1(0x602A, 0x0382);
-	write_cmos_sensor1(0x6F12, 0x0003);
-	write_cmos_sensor1(0x602A, 0x0900);
-	write_cmos_sensor(0x6F12, 0x01  );
-	write_cmos_sensor1(0x602A, 0x0901);
-	write_cmos_sensor(0x6F12, 0x21  );
-	write_cmos_sensor1(0x602A, 0x3027);
-	write_cmos_sensor(0x6F12, 0x30  );
-	write_cmos_sensor1(0x602A, 0x3BCE);
-	write_cmos_sensor(0x6F12, 0x20  );
-	write_cmos_sensor1(0x602A, 0x3BCF);
-	write_cmos_sensor(0x6F12, 0x20  );
-	write_cmos_sensor1(0x602A, 0x0400);
-	write_cmos_sensor1(0x6F12, 0x0000);
-	write_cmos_sensor1(0x6F12, 0x0000);
-	write_cmos_sensor1(0x602A, 0x0404);
-	write_cmos_sensor1(0x6F12, 0x0010);
-	write_cmos_sensor1(0x602A, 0x0111);
-	write_cmos_sensor(0x6F12, 0x02  );
-	write_cmos_sensor1(0x602A, 0x0112);
-	write_cmos_sensor1(0x6F12, 0x0A0A);
-	write_cmos_sensor1(0x602A, 0x302A);
-	write_cmos_sensor(0x6F12, 0x00  );
-	write_cmos_sensor1(0x602A, 0x0500);
-	write_cmos_sensor1(0x6F12, 0x0000);
-	write_cmos_sensor1(0x602A, 0x303E);
-	write_cmos_sensor1(0x6F12, 0x00A0);
-	write_cmos_sensor1(0x602A, 0x30DE);
-	write_cmos_sensor(0x6F12, 0x01  );
+	write_cmos_sensor1(0x602A, 0x0200);                                                 
+	write_cmos_sensor1(0x6F12, 0x000A);                                                 
+	write_cmos_sensor1(0x6F12, 0x0100);                                                 
+	write_cmos_sensor1(0x602A,  0x0136);                                                    
+	write_cmos_sensor1(0x6F12,  0x1800);                                                    
+	write_cmos_sensor1(0x602A,  0x0304);                                                    
+	write_cmos_sensor1(0x6F12,  0x0006);                                                    
+	write_cmos_sensor1(0x6F12,  0x00E0);                                                    
+	write_cmos_sensor1(0x602A,  0x030C);                                                    
+	write_cmos_sensor1(0x6F12,  0x0006);                                                    
+	write_cmos_sensor1(0x6F12,  0x00C6);                                                    
+	write_cmos_sensor1(0x602A,  0x0302);                                                    
+	write_cmos_sensor1(0x6F12,  0x0001);                                                    
+	write_cmos_sensor1(0x602A,  0x0300);                                                    
+	write_cmos_sensor1(0x6F12,  0x0002);                                                    
+	write_cmos_sensor1(0x602A,  0x030A);                                                    
+	write_cmos_sensor1(0x6F12,  0x0001);                                                    
+	write_cmos_sensor1(0x602A,  0x0308);                                                    
+	write_cmos_sensor1(0x6F12,  0x0008);                                                    
+	write_cmos_sensor1(0x602A,  0x3002);                                                    
+	write_cmos_sensor(0x6F12,  0x00);                                                      
+	                                                                                        
+	write_cmos_sensor1(0x602A,  0x35D9);                                                    
+	write_cmos_sensor(0x6F12,  0x03);    //00                                                
+	write_cmos_sensor1(0x602A,  0x303A);                                                    
+	write_cmos_sensor1(0x6F12,  0x017C); //02BC                                                   
+	write_cmos_sensor1(0x602A,  0x0B05);                                                    
+	write_cmos_sensor(0x6F12,  0x01);                                                      
+	write_cmos_sensor1(0x602A,  0x0B08);                                                    
+	write_cmos_sensor(0x6F12,  0x01);                                                      
+	write_cmos_sensor1(0x602A,  0x380E);                                                    
+	write_cmos_sensor(0x6F12,  0x01);                                                                        
+	write_cmos_sensor1(0x602A,  0x3027);   
+	write_cmos_sensor(0x6F12,  0x30);
+	                                                                   
+	write_cmos_sensor1(0x602A,  0x0342);               
+	write_cmos_sensor1(0x6F12,  0x1190);  //11A0         
+	write_cmos_sensor1(0x602A,  0x0340);           
+	write_cmos_sensor1(0x6F12,  0x0339);           
+	write_cmos_sensor1(0x602A,  0x034C);           
+	write_cmos_sensor1(0x6F12,  0x0500);           
+	write_cmos_sensor1(0x6F12,  0x02D0);           
+	write_cmos_sensor1(0x602A,  0x0114);           
+	write_cmos_sensor(0x6F12,  0x03);             
+	write_cmos_sensor1(0x602A,  0x0344);           
+	write_cmos_sensor1(0x6F12,  0x00BA);           
+	write_cmos_sensor1(0x6F12,  0x01E0);           
+	write_cmos_sensor1(0x6F12,  0x0FB9);           
+	write_cmos_sensor1(0x6F12,  0x0A4E);           
+	write_cmos_sensor1(0x602A,  0x0386);           
+	write_cmos_sensor1(0x6F12,  0x0005);           
+	write_cmos_sensor1(0x602A,  0x0382);           
+	write_cmos_sensor1(0x6F12,  0x0001);           
+	write_cmos_sensor1(0x602A,  0x0900);           
+	write_cmos_sensor(0x6F12,  0x01);             
+	write_cmos_sensor1(0x602A,  0x0901);           
+	write_cmos_sensor(0x6F12,  0x13);             
+	write_cmos_sensor1(0x602A,  0x0400);           
+	write_cmos_sensor1(0x6F12,  0x0001);           
+	write_cmos_sensor1(0x602A,  0x0404);           
+	write_cmos_sensor1(0x6F12,  0x0010);           
+	write_cmos_sensor1(0x602A,  0x0111);           
+	write_cmos_sensor(0x6F12,  0x02);             
+	write_cmos_sensor1(0x602A,  0x0112);           
+	write_cmos_sensor1(0x6F12,  0x0A0A);           
+	write_cmos_sensor1(0x602A,  0x302A);           
+	write_cmos_sensor(0x6F12,  0x00);             
+	write_cmos_sensor1(0x602A,  0x0500);           
+	write_cmos_sensor1(0x6F12,  0x0000);           
+	write_cmos_sensor1(0x602A,  0x303E);           
+	write_cmos_sensor1(0x6F12,  0x00A0);           
+	write_cmos_sensor1(0x602A,  0x30DE);           
+	write_cmos_sensor(0x6F12,  0x01);	       
+	//write_cmos_sensor1(0x602A,  0x0101);           
+	//write_cmos_sensor(0x6F12,  0x03);	       
+	       
+	       
 	write_cmos_sensor1(0x602A, 0x0100);
 	write_cmos_sensor(0x6F12, 0x01  );
 	mDELAY(10);
@@ -1854,7 +1908,18 @@ static kal_uint32 get_imgsensor_id(UINT32 *sensor_id)
             *sensor_id = return_sensor_id();
             if (*sensor_id == imgsensor_info.sensor_id) {
                 LOG_INF("i2c write id: 0x%x, sensor id: 0x%x\n", imgsensor.i2c_write_id,*sensor_id);
-                return ERROR_NONE;
+                #ifdef CONFIG_MTK_CAM_CAL
+                read_s5k3l2_eeprom_mtk_fmt();
+                #endif
+				if(read_s5k3l2_eeprom_vendor_id() == 0x34)
+				{
+                 return ERROR_NONE;
+				}
+				else
+				{
+				  *sensor_id = 0xFFFFFFFF;
+                  return ERROR_SENSOR_CONNECT_FAIL;
+				}
             }
             LOG_INF("Read sensor id fail, write id: 0x%x, id: 0x%x\n", imgsensor.i2c_write_id,*sensor_id);
             retry--;
@@ -1901,7 +1966,7 @@ static kal_uint32 open(void)
         spin_unlock(&imgsensor_drv_lock);
         do {
             sensor_id = return_sensor_id();
-            if (sensor_id == imgsensor_info.sensor_id) {
+            if ((sensor_id == imgsensor_info.sensor_id) && (read_s5k3l2_eeprom_vendor_id() == 0x34)) {
                 LOG_INF("i2c write id: 0x%x, sensor id: 0x%x\n", imgsensor.i2c_write_id,sensor_id);
                 break;
             }
@@ -1918,7 +1983,7 @@ static kal_uint32 open(void)
 
     /* initail sequence write in  */
     sensor_init();
-
+    
     spin_lock(&imgsensor_drv_lock);
 
     imgsensor.autoflicker_en= KAL_FALSE;

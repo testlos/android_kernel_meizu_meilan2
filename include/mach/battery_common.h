@@ -10,7 +10,7 @@
  *  BATTERY VOLTAGE
  ****************************************************************************/
 #define PRE_CHARGE_VOLTAGE                  3200
-#define SYSTEM_OFF_VOLTAGE                  3400
+#define SYSTEM_OFF_VOLTAGE                  3350	//gemingming@wind-mobi.com 20150401
 #define CONSTANT_CURRENT_CHARGE_VOLTAGE     4100
 #define CONSTANT_VOLTAGE_CHARGE_VOLTAGE     4200
 #define CV_DROPDOWN_VOLTAGE                 4000
@@ -47,6 +47,13 @@
 #define BATTERY_UNDER_VOL		2
 #define BATTERY_OVER_TEMP		3
 #define ADC_SAMPLE_TIMES        5
+//gemingming@wind-mobi.com 20131119 begin
+//when the charger upto 6.500V, stop charging and show error 
+#ifdef CONFIG_WIND_BATTERY_MODIFY
+#define charger_UNDER_VOL       6
+#endif
+//gemingming@wind-mobi.com 20131119 end
+
 
 /*****************************************************************************
  *  Pulse Charging State

@@ -500,6 +500,10 @@ struct _BSS_DESC_T {
 	UINT_8					ucBssErrCnt;
 	UINT_16					ucBssErrCntTotal;
 #endif /* CFG_AIS_SUPPORT_REJ_CNT_AVOID */
+	/* workaround for bandwidth IOT issue 
+		some APs may announce it only use 20M bandwidth for this bss, but still Tx packets with 40M bw if
+		station declare 20/40Mhz capability in assoc request */
+	BOOLEAN					fgBwWorkaround;
 };
 
 

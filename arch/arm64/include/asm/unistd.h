@@ -42,7 +42,12 @@
 #define __ARM_NR_COMPAT_BASE		0x0f0000
 #define __ARM_NR_compat_cacheflush	(__ARM_NR_COMPAT_BASE+2)
 #define __ARM_NR_compat_set_tls		(__ARM_NR_COMPAT_BASE+5)
-
+/*dixiaobing@wind-mobi.com 20150625 start*/
+#ifdef CONFIG_MEIZU_SYSCALL
+#define __NR_set_machine_info           (__ARM_NR_COMPAT_BASE+103)
+#define __NR_do_system_data             (__ARM_NR_COMPAT_BASE+104)
+#endif
+/*dixiaobing@wind-mobi.com 20150625 end*/
 #define __NR_compat_syscalls		384
 #endif
 

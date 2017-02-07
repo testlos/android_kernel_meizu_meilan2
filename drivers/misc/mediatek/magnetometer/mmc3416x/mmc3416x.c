@@ -47,6 +47,12 @@
 #include <cust_mag.h>
 #include "mmc3416x.h"
 #include <linux/hwmsen_helper.h>
+
+#define MMC3416X_M_NEW_ARCH
+#ifdef MMC3416X_M_NEW_ARCH
+#include "mag.h"
+#endif
+
 /*----------------------------------------------------------------------------*/
 #define DEBUG 1
 #define MMC3416X_DEV_NAME         "mmc3416x"
@@ -77,10 +83,11 @@
 #endif
 
 static struct i2c_client *this_client = NULL;
-
+extern struct mag_hw* mmc3416_get_cust_mag_hw(void); 
+char *msensor_name = NULL;    //modify yudengwu 2015-01-30
 
 // calibration msensor and orientation data
-static int sensor_data[CALIBRATION_DATA_SIZE];
+static int sensor_data[CALIBRATION_DATA_SIZE]; //zhangaifeng@wind-mobi.com 20150105 modify for gyro
 static struct mutex sensor_data_mutex;
 static struct mutex read_i2c_xyz;
 static DECLARE_WAIT_QUEUE_HEAD(data_ready_wq);
@@ -119,8 +126,8 @@ typedef enum {
 } MMC_TRC;
 
 #define MMC3416X_DELAY_TM	10	/* ms */
-#define MMC3416X_DELAY_SET	50	/* ms */
-#define MMC3416X_DELAY_RST	50	/* ms */
+#define MMC3416X_DELAY_SET	75	/* ms */
+#define MMC3416X_DELAY_RST	75	/* ms */
 #define MMC3416X_DELAY_STDN	1	/* ms */
 
 #define MMC3416X_RESET_INTV	250
@@ -176,6 +183,16 @@ static const struct of_device_id mmc_of_match[] = {
 };
 #endif
 
+#ifdef MMC3416X_M_NEW_ARCH
+static int mmc3416x_local_init(void);
+static int mmc3416x_remove(void);
+static int mmc3416x_init_flag =-1; // 0<==>OK -1 <==> fail
+static struct mag_init_info mmc3416x_init_info = {
+        .name = "mmc3416x",
+        .init = mmc3416x_local_init,
+        .uninit = mmc3416x_remove,
+};
+#else
 static struct platform_driver mmc_sensor_driver =
 {
 	.probe      = mmc_probe,
@@ -188,6 +205,7 @@ static struct platform_driver mmc_sensor_driver =
 		#endif
 	}
 };
+#endif
 
 /*----------------------------------------------------------------------------*/
 static atomic_t dev_open_count;
@@ -363,7 +381,7 @@ static int I2C_TxData(char *txData, int length)
 
 
 // Daemon application save the data
-static int ECS_SaveData(int buf[12])
+static int ECS_SaveData(int buf[CALIBRATION_DATA_SIZE])
 {
 #if DEBUG	
 	struct i2c_client *client = this_client;  
@@ -377,10 +395,11 @@ static int ECS_SaveData(int buf[12])
 #if DEBUG
 	if(atomic_read(&data->trace) & MMC_HWM_DEBUG)
 	{
-		MMCDBG("Get daemon data: %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d!\n",
+		MMCDBG("Get daemon data: %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d!\n",
 			sensor_data[0],sensor_data[1],sensor_data[2],sensor_data[3],
 			sensor_data[4],sensor_data[5],sensor_data[6],sensor_data[7],
-			sensor_data[8],sensor_data[9],sensor_data[10],sensor_data[11]);
+			sensor_data[8],sensor_data[9],sensor_data[10],sensor_data[11],
+			sensor_data[12],sensor_data[13],sensor_data[14],sensor_data[15]);
 	}	
 #endif
 
@@ -723,7 +742,7 @@ static ssize_t store_trace_value(struct device_driver *ddri, const char *buf, si
 	}
 	else 
 	{
-		printk(KERN_ERR "invalid content: '%s', length = %d\n", buf, count);
+//		printk(KERN_ERR "invalid content: '%s', length = %d\n", buf, count);
 	}
 	
 	return count;    
@@ -831,7 +850,7 @@ static int mmc3416x_release(struct inode *inode, struct file *file)
 	/* NOTE: In this function the size of "char" should be 1-byte. */
 	char buff[MMC3416X_BUFSIZE];				/* for chip information */
 
-	int value[12];			/* for SET_YPR */
+	int value[16];			/* for SET_YPR */
 	int delay;				/* for GET_DELAY */
 	int status; 				/* for OPEN/CLOSE_STATUS */
 	short sensor_status;		/* for Orientation and Msensor status */
@@ -854,7 +873,7 @@ static int mmc3416x_release(struct inode *inode, struct file *file)
 				return -EFAULT;
 			}
 			/* wait TM done for coming data read */
-			msleep(MMC3416X_DELAY_TM);
+		//	msleep(MMC3416X_DELAY_TM);
 			break;
 			
 		case MMC31XX_IOC_SET:
@@ -1101,12 +1120,193 @@ static int mmc3416x_release(struct inode *inode, struct file *file)
 
 	return 0;    
 }
+
+#ifdef CONFIG_COMPAT
+static long mmc3416x_compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+{
+	long ret = 0;
+	
+		void __user *arg64 = compat_ptr(arg);
+	
+		if(!file->f_op || !file->f_op->unlocked_ioctl)
+		{
+			printk(KERN_ERR "file->f_op OR file->f_op->unlocked_ioctl is null!\n");
+			return -ENOTTY;
+		}
+	
+		switch(cmd)
+		{
+			case COMPAT_MMC31XX_IOC_TM:
+				ret = file->f_op->unlocked_ioctl(file, MMC31XX_IOC_TM, (unsigned long)arg64);
+				if(ret < 0)
+				{
+					printk(KERN_ERR "COMPAT_MMC31XX_IOC_TM is failed!\n");
+				}
+				break;
+	
+			case COMPAT_MMC31XX_IOC_SET:
+				ret = file->f_op->unlocked_ioctl(file, MMC31XX_IOC_SET, (unsigned long)arg64);
+				if(ret < 0)
+				{
+					printk(KERN_ERR "COMPAT_MMC31XX_IOC_SET is failed!\n");
+				}
+				break;
+			case COMPAT_MMC31XX_IOC_RESET:
+				ret = file->f_op->unlocked_ioctl(file, MMC31XX_IOC_RESET, (unsigned long)arg64);
+				if(ret < 0)
+				{
+					printk(KERN_ERR "COMPAT_MMC31XX_IOC_RESET is failed!\n");
+				}
+			case COMPAT_MMC31XX_IOC_READ:
+				ret = file->f_op->unlocked_ioctl(file, MMC31XX_IOC_READ, (unsigned long)arg64);
+				if(ret < 0)
+				{
+					printk(KERN_ERR "COMPAT_MMC31XX_IOC_READ is failed!\n");
+				}
+	
+				break;
+	
+			case COMPAT_MMC31XX_IOC_READXYZ:
+				ret = file->f_op->unlocked_ioctl(file, MMC31XX_IOC_READXYZ, (unsigned long)arg64);
+				if(ret < 0)
+				{
+					printk(KERN_ERR "COMPAT_MMC31XX_IOC_READXYZ is failed!\n");
+				}
+	
+				break;
+			case COMPAT_ECOMPASS_IOC_GET_DELAY:
+				ret = file->f_op->unlocked_ioctl(file, ECOMPASS_IOC_GET_DELAY, (unsigned long)arg64);
+				if(ret < 0)
+				{
+					printk(KERN_ERR "COMPAT_ECOMPASS_IOC_GET_DELAY is failed!\n");
+				}
+	
+				break;
+	
+			case COMPAT_ECOMPASS_IOC_SET_YPR:
+				ret = file->f_op->unlocked_ioctl(file, ECOMPASS_IOC_SET_YPR, (unsigned long)arg64);
+				if(ret < 0)
+				{
+					printk(KERN_ERR "COMPAT_ECOMPASS_IOC_SET_YPR is failed!\n");
+				}
+	
+				break;
+	
+			case COMPAT_ECOMPASS_IOC_GET_OPEN_STATUS:
+				ret = file->f_op->unlocked_ioctl(file, ECOMPASS_IOC_GET_OPEN_STATUS, (unsigned long)arg64);
+				if(ret < 0)
+				{
+					printk(KERN_ERR "COMPAT_ECOMPASS_IOC_GET_OPEN_STATUS is failed!\n");
+				}
+	
+				break;
+	
+			case COMPAT_ECOMPASS_IOC_GET_MFLAG:
+				ret = file->f_op->unlocked_ioctl(file, ECOMPASS_IOC_GET_MFLAG, (unsigned long)arg64);
+				if(ret < 0)
+				{
+					printk(KERN_ERR "COMPAT_ECOMPASS_IOC_GET_MFLAG is failed!\n");
+				}
+	
+				break;
+	
+			case COMPAT_ECOMPASS_IOC_GET_OFLAG:
+				ret = file->f_op->unlocked_ioctl(file, ECOMPASS_IOC_GET_OFLAG, (unsigned long)arg64);
+				if(ret < 0)
+				{
+					printk(KERN_ERR "COMPAT_ECOMPASS_IOC_GET_OFLAG is failed!\n");
+				}
+	
+				break;
+	
+	
+			case COMPAT_MSENSOR_IOCTL_READ_CHIPINFO:
+				if(arg64 == NULL)
+				{
+					printk(KERN_ERR "IO parameter pointer is NULL!\r\n");
+					break;
+				}
+	
+				ret = file->f_op->unlocked_ioctl(file, MSENSOR_IOCTL_READ_CHIPINFO, (unsigned long)arg64);
+				if(ret < 0)
+				{
+					printk(KERN_ERR "COMPAT_MSENSOR_IOCTL_READ_CHIPINFO is failed!\n");
+				}
+	
+				break;
+	
+			case COMPAT_MSENSOR_IOCTL_READ_SENSORDATA:
+				if(arg64 == NULL)
+				{
+					printk(KERN_ERR "IO parameter pointer is NULL!\r\n");
+					break;
+				}
+	
+				ret = file->f_op->unlocked_ioctl(file, MSENSOR_IOCTL_READ_SENSORDATA, (unsigned long)arg64);
+				if(ret < 0)
+				{
+					printk(KERN_ERR "COMPAT_MSENSOR_IOCTL_READ_SENSORDATA is failed!\n");
+				}
+	
+				break;
+	
+			case COMPAT_ECOMPASS_IOC_GET_LAYOUT:
+				ret = file->f_op->unlocked_ioctl(file, ECOMPASS_IOC_GET_LAYOUT, (unsigned long)arg64);
+				if(ret < 0)
+				{
+					printk(KERN_ERR "COMPAT_ECOMPASS_IOC_GET_LAYOUT is failed!\n");
+				}
+	
+				break;
+	
+			case COMPAT_MSENSOR_IOCTL_SENSOR_ENABLE:
+				if(arg64 == NULL)
+				{
+					printk(KERN_ERR "IO parameter pointer is NULL!\r\n");
+					break;
+				}
+	
+				ret = file->f_op->unlocked_ioctl(file, MSENSOR_IOCTL_SENSOR_ENABLE, (unsigned long)arg64);
+				if(ret < 0)
+				{
+					printk(KERN_ERR "COMPAT_MSENSOR_IOCTL_SENSOR_ENABLE is failed!\n");
+				}
+	
+				break;
+	
+			case COMPAT_MSENSOR_IOCTL_READ_FACTORY_SENSORDATA:
+				if(arg64 == NULL)
+				{
+					printk(KERN_ERR "IO parameter pointer is NULL!\r\n");
+					break;
+				}
+	
+				ret = file->f_op->unlocked_ioctl(file, MSENSOR_IOCTL_READ_FACTORY_SENSORDATA, (unsigned long)arg64);
+				if(ret < 0)
+				{
+					printk(KERN_ERR "COMPAT_MSENSOR_IOCTL_READ_FACTORY_SENSORDATA is failed!\n");
+				}
+	
+				break;
+	
+			default:
+				printk(KERN_ERR "%s not supported = 0x%04x", __FUNCTION__, cmd);
+				return -ENOIOCTLCMD;
+				break;		
+		}
+		return ret;
+}
+
+#endif
 /*----------------------------------------------------------------------------*/
 static struct file_operations mmc3416x_fops = {
 	//.owner = THIS_MODULE,
 	.open = mmc3416x_open,
 	.release = mmc3416x_release,
 	.unlocked_ioctl = mmc3416x_unlocked_ioctl,
+	#ifdef CONFIG_COMPAT
+        .compat_ioctl = mmc3416x_compat_ioctl,
+    	#endif
 };
 /*----------------------------------------------------------------------------*/
 static struct miscdevice mmc3416x_device = {
@@ -1322,6 +1522,116 @@ int mmc3416x_orientation_operate(void* self, uint32_t command, void* buff_in, in
 	return err;
 }
 
+//zhangaifeng@wind-mobi.com gyro begin
+
+int mmc3416x_gyro_operate(void* self, uint32_t command, void* buff_in, int size_in,
+		void* buff_out, int size_out, int* actualout)
+{
+	//printk("Kaka mmc3416x_gyro_operate\n");
+	int err = 0;
+	int value;
+	hwm_sensor_data* gysensor_data;	
+#if DEBUG	
+	struct i2c_client *client = this_client;  
+	struct mmc3416x_i2c_data *data = i2c_get_clientdata(client);
+#endif
+	
+#if DEBUG
+	if(atomic_read(&data->trace) & MMC_FUN_DEBUG)
+	{
+		MMCFUNC("mmc3416x_gyro_operate");
+	}	
+#endif
+
+	switch (command)
+	{
+		case SENSOR_DELAY:
+			MMCFUNC("mmc3416x_gyro_delay");
+			if((buff_in == NULL) || (size_in < sizeof(int)))
+			{
+				printk(KERN_ERR "Set delay parameter error!\n");
+				err = -EINVAL;
+			}
+			else
+			{
+				value = *(int *)buff_in;
+				if(value <= 20)
+				{
+					mmcd_delay = 20;
+				}
+				mmcd_delay = value;
+			}	
+			break;
+
+		case SENSOR_ENABLE:
+			MMCFUNC("mmc3416x_gyro_enable");
+			if((buff_in == NULL) || (size_in < sizeof(int)))
+			{
+				printk(KERN_ERR "Enable sensor parameter error!\n");
+				err = -EINVAL;
+			}
+			else
+			{
+				
+				value = *(int *)buff_in;
+
+				if(value == 1)
+				{
+					atomic_set(&o_flag, 1);
+					atomic_set(&open_flag, 1);
+				}
+				else
+				{
+					atomic_set(&o_flag, 0);
+					if(atomic_read(&m_flag) == 0)
+					{
+						atomic_set(&open_flag, 0);
+					}									
+				}	
+				wake_up(&open_wq);
+			}
+			break;
+
+		case SENSOR_GET_DATA:
+			MMCFUNC("mmc3416x_gyro_data");
+			if((buff_out == NULL) || (size_out< sizeof(hwm_sensor_data)))
+			{
+				printk(KERN_ERR "get sensor data parameter error!\n");
+				err = -EINVAL;
+			}
+			else
+			{
+				gysensor_data = (hwm_sensor_data *)buff_out;
+				mutex_lock(&sensor_data_mutex);
+				
+				gysensor_data->values[0] = sensor_data[12] * CONVERT_GY;
+				gysensor_data->values[1] = sensor_data[13] * CONVERT_GY;
+				gysensor_data->values[2] = sensor_data[14] * CONVERT_GY;
+				gysensor_data->status = sensor_data[15];
+				gysensor_data->value_divide = CONVERT_GY_DIV;
+					
+				mutex_unlock(&sensor_data_mutex);
+#if DEBUG
+			if(atomic_read(&data->trace) & MMC_HWM_DEBUG)
+			{
+				MMCDBG("Hwm get o-sensor data: %d, %d, %d. divide %d, status %d!\n",
+					gysensor_data->values[0],gysensor_data->values[1],gysensor_data->values[2],
+					gysensor_data->value_divide,gysensor_data->status);
+			}	
+#endif
+			}
+			break;
+		default:
+			printk(KERN_ERR "gsensor operate function no this parameter %d!\n", command);
+			err = -1;
+			break;
+	}
+	
+	return err;
+}
+//Kaka
+//zhangaifeng@wind-mobi.com gyro end
+
 /*----------------------------------------------------------------------------*/
 #ifndef	CONFIG_HAS_EARLYSUSPEND
 /*----------------------------------------------------------------------------*/
@@ -1397,7 +1707,8 @@ static int mmc3416x_i2c_probe(struct i2c_client *client, const struct i2c_device
 	struct mmc3416x_i2c_data *data;
 	char tmp[2];
 	int err = 0;
-	struct hwmsen_object sobj_m, sobj_o;
+//	struct hwmsen_object sobj_m, sobj_o;//kaka
+	struct hwmsen_object sobj_m, sobj_o, sobj_gy; //zhangaifeng@wind-mobi.com gyro modify
 
     MMCDBG("%s: ++++\n", __func__);
 	if(!(data = kmalloc(sizeof(struct mmc3416x_i2c_data), GFP_KERNEL)))
@@ -1407,7 +1718,7 @@ static int mmc3416x_i2c_probe(struct i2c_client *client, const struct i2c_device
 	}
 	memset(data, 0, sizeof(struct mmc3416x_i2c_data));
 
-	data->hw = get_cust_mag_hw();	
+	data->hw = mmc3416_get_cust_mag_hw();	
 	
 	atomic_set(&data->layout, data->hw->direction);
 	atomic_set(&data->trace, 0);
@@ -1442,45 +1753,69 @@ static int mmc3416x_i2c_probe(struct i2c_client *client, const struct i2c_device
 	tmp[0] = MMC3416X_REG_CTRL;
 	tmp[1] = MMC3416X_CTRL_REFILL;
 	if (I2C_TxData(tmp, 2) < 0) {
+		printk(KERN_ERR "mmc3416x_device I2C_TxData failed\n");
+		err = -ENOMEM;
+		goto exit_kfree;
 	}
 	msleep(MMC3416X_DELAY_SET);
 
 	tmp[0] = MMC3416X_REG_CTRL;
 	tmp[1] = MMC3416X_CTRL_SET;
 	if (I2C_TxData(tmp, 2) < 0) {
+		printk(KERN_ERR "mmc3416x_device I2C_TxData failed\n");
+		err = -ENOMEM;
+		goto exit_kfree;
 	}
 	msleep(1);
 	tmp[0] = MMC3416X_REG_CTRL;
 	tmp[1] = 0;
 	if (I2C_TxData(tmp, 2) < 0) {
+		printk(KERN_ERR "mmc3416x_device I2C_TxData failed\n");
+		err = -ENOMEM;
+		goto exit_kfree;
 	}
 	msleep(MMC3416X_DELAY_SET);
 
 	tmp[0] = MMC3416X_REG_CTRL;
 	tmp[1] = MMC3416X_CTRL_REFILL;
 	if (I2C_TxData(tmp, 2) < 0) {
+		printk(KERN_ERR "mmc3416x_device I2C_TxData failed\n");
+		err = -ENOMEM;
+		goto exit_kfree;
 	}
 	msleep(MMC3416X_DELAY_RST);
 	tmp[0] = MMC3416X_REG_CTRL;
 	tmp[1] = MMC3416X_CTRL_RESET;
 	if (I2C_TxData(tmp, 2) < 0) {
+		printk(KERN_ERR "mmc3416x_device I2C_TxData failed\n");
+		err = -ENOMEM;
+		goto exit_kfree;
 	}
 	msleep(1);
 	tmp[0] = MMC3416X_REG_CTRL;
 	tmp[1] = 0;
 	if (I2C_TxData(tmp, 2) < 0) {
+		printk(KERN_ERR "mmc3416x_device I2C_TxData failed\n");
+		err = -ENOMEM;
+		goto exit_kfree;
 	}
 	msleep(1);
 
 	tmp[0] = MMC3416X_REG_BITS;
 	tmp[1] = MMC3416X_BITS_SLOW_16;
 	if (I2C_TxData(tmp, 2) < 0) {
+		printk(KERN_ERR "mmc3416x_device I2C_TxData failed\n");
+		err = -ENXIO;
+		goto exit_kfree;
 	}
 	msleep(MMC3416X_DELAY_TM);
 
 	tmp[0] = MMC3416X_REG_CTRL;
 	tmp[1] = MMC3416X_CTRL_TM;
 	if (I2C_TxData(tmp, 2) < 0) {
+		printk(KERN_ERR "mmc3416x_device I2C_TxData failed\n");
+		err = -ENOMEM;
+		goto exit_kfree;
 	}
 	msleep(MMC3416X_DELAY_TM);
 
@@ -1489,7 +1824,11 @@ static int mmc3416x_i2c_probe(struct i2c_client *client, const struct i2c_device
 
 
 	/* Register sysfs attribute */
+#ifdef MMC3416X_M_NEW_ARCH
+    if((err = mmc3416x_create_attr(&(mmc3416x_init_info.platform_diver_addr->driver))))
+#else
 	if((err = mmc3416x_create_attr(&mmc_sensor_driver.driver)))
+#endif
 	{
 		printk(KERN_ERR "create attribute err = %d\n", err);
 		goto exit_sysfs_create_group_failed;
@@ -1518,6 +1857,19 @@ static int mmc3416x_i2c_probe(struct i2c_client *client, const struct i2c_device
 		printk(KERN_ERR "attach fail = %d\n", err);
 		goto exit_kfree;
 	}
+
+//zhangaifeng@wind-mobi.com gyro begin
+
+		sobj_gy.self = data;
+    sobj_gy.polling = 1;
+    sobj_gy.sensor_operate = mmc3416x_gyro_operate;
+	if(err = hwmsen_attach(ID_GYROSCOPE, &sobj_gy))
+	{
+		printk(KERN_ERR "attach fail = %d\n", err);
+		goto exit_kfree;
+	}
+
+//zhangaifeng@wind-mobi.com gyro end
 	
 #if CONFIG_HAS_EARLYSUSPEND
 	data->early_drv.level    = EARLY_SUSPEND_LEVEL_DISABLE_FB - 1,
@@ -1526,6 +1878,11 @@ static int mmc3416x_i2c_probe(struct i2c_client *client, const struct i2c_device
 	register_early_suspend(&data->early_drv);
 #endif
 
+	msensor_name = "mmc3416x";   //modify yudengwu 2015-01-30
+	
+#ifdef MMC3416X_M_NEW_ARCH
+    mmc3416x_init_flag = 1;
+#endif
 	MMCDBG("%s: OK\n", __func__);
 	return 0;
 
@@ -1542,7 +1899,11 @@ static int mmc3416x_i2c_remove(struct i2c_client *client)
 {
 	int err;	
 	
+#ifdef MMC3416X_M_NEW_ARCH
+    if((err = mmc3416x_delete_attr(&(mmc3416x_init_info.platform_diver_addr->driver))))
+#else
 	if((err = mmc3416x_delete_attr(&mmc_sensor_driver.driver)))
+#endif
 	{
 		printk(KERN_ERR "mmc3416x_delete_attr fail: %d\n", err);
 	}
@@ -1553,10 +1914,47 @@ static int mmc3416x_i2c_remove(struct i2c_client *client)
 	misc_deregister(&mmc3416x_device);    
 	return 0;
 }
+
+#ifdef MMC3416X_M_NEW_ARCH
+static int mmc3416x_local_init(void)
+{
+	struct mag_hw *hw = mmc3416_get_cust_mag_hw();
+
+	mmc3416x_power(hw, 1);
+
+	atomic_set(&dev_open_count, 0);
+	//mmc3416x_force[0] = hw->i2c_num;
+
+	if(i2c_add_driver(&mmc3416x_i2c_driver))
+	{
+		printk(KERN_ERR "add driver error\n");
+		return -1;
+	}
+
+    if(-1 == mmc3416x_init_flag)
+    {
+        printk(KERN_ERR "%s failed!\n",__func__);
+        return -1;
+    }
+
+	return 0;
+}
+
+static int mmc3416x_remove(void)
+{
+	struct mag_hw *hw = mmc3416_get_cust_mag_hw();
+
+	mmc3416x_power(hw, 0);
+	atomic_set(&dev_open_count, 0);
+	i2c_del_driver(&mmc3416x_i2c_driver);
+	return 0;
+}
+#endif
+
 /*----------------------------------------------------------------------------*/
 static int mmc_probe(struct platform_device *pdev) 
 {
-	struct mag_hw *hw = get_cust_mag_hw();
+	struct mag_hw *hw = mmc3416_get_cust_mag_hw();
 
 	mmc3416x_power(hw, 1);
 	
@@ -1573,7 +1971,7 @@ static int mmc_probe(struct platform_device *pdev)
 /*----------------------------------------------------------------------------*/
 static int mmc_remove(struct platform_device *pdev)
 {
-	struct mag_hw *hw = get_cust_mag_hw();
+	struct mag_hw *hw = mmc3416_get_cust_mag_hw();
  
 	mmc3416x_power(hw, 0);    
 	atomic_set(&dev_open_count, 0);  
@@ -1583,20 +1981,28 @@ static int mmc_remove(struct platform_device *pdev)
 /*----------------------------------------------------------------------------*/
 static int __init mmc3416x_init(void)
 {
-	struct mag_hw *hw = get_cust_mag_hw();
+	struct mag_hw *hw = mmc3416_get_cust_mag_hw();
 	printk("%s: i2c_number=%d\n", __func__,hw->i2c_num); 		 
 	i2c_register_board_info(hw->i2c_num, &i2c_mmc3416x, 1);
+
+#ifdef MMC3416X_M_NEW_ARCH
+    mag_driver_add(&mmc3416x_init_info);
+#else
 	if(platform_driver_register(&mmc_sensor_driver))
 	{
 		printk(KERN_ERR "failed to register driver");
 		return -ENODEV;
 	}
+#endif
+
 	return 0;    
 }
 /*----------------------------------------------------------------------------*/
 static void __exit mmc3416x_exit(void)
 {	
+#ifndef MMC3416X_M_NEW_ARCH
 	platform_driver_unregister(&mmc_sensor_driver);
+#endif
 }
 /*----------------------------------------------------------------------------*/
 module_init(mmc3416x_init);

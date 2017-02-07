@@ -138,8 +138,6 @@
 #define OV4688MIPI_SENSOR_ID                    0x4688
 #define OV3640_SENSOR_ID                        0x364C
 #define OV2722MIPI_SENSOR_ID                    0x2722
-#define OV2680MIPI_SENSOR_ID                    0x2680
-#define OV2680_SENSOR_ID                        0x2680
 #define OV2659_SENSOR_ID                        0x2656
 #define OV2655_SENSOR_ID                        0x2656
 #define OV2650_SENSOR_ID                        0x2652
@@ -151,21 +149,31 @@
 #define S5K3M2_SENSOR_ID                        0x30D2
 #define S5K3AAEA_SENSOR_ID                      0x07AC
 #define S5K3BAFB_SENSOR_ID                      0x7070
-#define S5K3H7YX_SENSOR_ID                       0x3087
+#define S5K3H7Y_SENSOR_ID                       0x3087
 #define S5K3H2YX_SENSOR_ID                      0x382b
-#define S5K3H5XA_SENSOR_ID                      0x3085
 #define S5KA3DFX_SENSOR_ID                      0x00AB
 #define S5K3E2FX_SENSOR_ID                      0x3E2F
 #define S5K4B2FX_SENSOR_ID                      0x5080
 #define S5K4E1GA_SENSOR_ID                      0x4E10
 #define S5K4ECGX_SENSOR_ID                      0x4EC0
 #define S5K53BEX_SENSOR_ID                      0x45A8
-#define S5K3L2_SENSOR_ID												0x30C2   //libo test
 #define S5K53BEB_SENSOR_ID                      0x87A8
 #define S5K5BAFX_SENSOR_ID                      0x05BA
 #define S5K5E2YA_SENSOR_ID                      0x5e20
 #define S5K4H5YX_2LANE_SENSOR_ID                0x485B
+
+/* oujiacheng@wind-mobi.com 2015.6.8 begin */
 #define S5K4H5YC_SENSOR_ID                      0x485B
+#define GC2355_SENSOR_ID                        0x2355
+#define S5K4H5YC_SENSOR_ID_GEER                 0x485C
+#define OV2680MIPI_SENSOR_ID                    0x2680
+/* oujiacheng@wind-mobi.com 2015.6.8 end */
+
+/* liukun@wind-mobi.com 20150101 begin */
+#define S5K3L2_SENSOR_ID                        0x30C2
+#define S5K3L2_SENSOR_ID_GEER                   0x30C3
+#define OV5670MIPI_SENSOR_ID_GEER               0x5671
+/* liukun@wind-mobi.com 20150101 end */
 #define S5K83AFX_SENSOR_ID                      0x01C4
 #define S5K5CAGX_SENSOR_ID                      0x05ca
 #define S5K8AAYX_MIPI_SENSOR_ID                 0x08aa
@@ -209,7 +217,6 @@
 #define MT9P017MIPI_SENSOR_ID                   0x4800
 #define MT9T113MIPI_SENSOR_ID                   0x4680
 /*GC*/
-#define GC2355_SENSOR_ID                        0x2355
 #define GC2235_SENSOR_ID                        0x2235
 #define GC2035_SENSOR_ID                        0x2035
 #define GC2145_SENSOR_ID                        0x2145
@@ -283,7 +290,7 @@
 #define SENSOR_DRVNAME_OV8825_MIPI_RAW          "ov8825mipiraw"
 #define SENSOR_DRVNAME_OV7675_YUV               "ov7675yuv"
 #define SENSOR_DRVNAME_OV5693_MIPI_RAW          "ov5693mipi"
-#define SENSOR_DRVNAME_OV5670_MIPI_RAW          "ov5670mipiraw"
+#define SENSOR_DRVNAME_OV5670_MIPI_RAW          "ov5670mipirawavc"
 #define SENSOR_DRVNAME_OV5671_MIPI_RAW          "ov5671mipiraw"
 #define SENSOR_DRVNAME_OV5647MIPI_RAW           "ov5647mipiraw"
 #define SENSOR_DRVNAME_OV5645_MIPI_YUV          "ov5645_mipi_yuv"
@@ -301,7 +308,6 @@
 #define SENSOR_DRVNAME_OV3640_RAW               "ov3640"
 #define SENSOR_DRVNAME_OV3640_YUV               "ov3640yuv"
 #define SENSOR_DRVNAME_OV2722_MIPI_RAW          "ov2722mipiraw"
-#define SENSOR_DRVNAME_OV2680_MIPI_RAW          "ov2680mipiraw"
 #define SENSOR_DRVNAME_OV2659_YUV               "ov2659yuv"
 #define SENSOR_DRVNAME_OV2655_YUV               "ov2655yuv"
 #define SENSOR_DRVNAME_OV2650_RAW               "ov265x"
@@ -309,16 +315,26 @@
 #define SENSOR_DRVNAME_S5K2P8_MIPI_RAW          "s5k2p8mipiraw"
 #define SENSOR_DRVNAME_S5K3M2_MIPI_RAW          "s5k3m2mipiraw"
 #define SENSOR_DRVNAME_S5K3H2YX_MIPI_RAW        "s5k3h2yxmipiraw"
-#define SENSOR_DRVNAME_S5K3H5XA_MIPI_RAW        "s5k3h5xamipiraw"
 
-#define SENSOR_DRVNAME_S5K3H7YX_MIPI_RAW         "s5k3h7yxmipiraw"
-#define SENSOR_DRVNAME_S5K4H5YC_MIPI_RAW        "s5k4h5ycmipiraw"
+#define SENSOR_DRVNAME_S5K3H7Y_MIPI_RAW         "s5k3h7ymipiraw"
+
+/* oujiacheng@wind-mobi.com 2015.6.8 begin */
+#define SENSOR_DRVNAME_S5K4H5YC_MIPI_RAW        "s5k4h5ycmipirawavc"
+#define SENSOR_DRVNAME_GC2355_MIPI_RAW          "gc2355mipirawgeer"
+#define SENSOR_DRVNAME_S5K4H5YC_MIPI_RAW_GEER        "s5k4h5ycmipirawgeer"
+#define SENSOR_DRVNAME_OV2680_MIPI_RAW          "ov2680mipirawavc"
+/* oujiacheng@wind-mobi.com 2015.6.8 end */
+
+/* liukun@wind-mobi.com 20150101 begin */
+#define SENSOR_DRVNAME_S5K3L2_MIPI_RAW          "s5k3l2mipirawavc"
+#define SENSOR_DRVNAME_S5K3L2_MIPI_RAW_GEER     "s5k3l2mipirawgeer"
+#define SENSOR_DRVNAME_OV5670_MIPI_RAW_GEER     "ov5670mipigeer"
+/* liukun@wind-mobi.com 20150101 end */
 #define SENSOR_DRVNAME_S5K4E1GA_MIPI_RAW        "s5k4e1gamipiraw"
 #define SENSOR_DRVNAME_S5K4ECGX_MIPI_YUV        "s5k4ecgxmipiyuv"
 #define SENSOR_DRVNAME_S5K5CAGX_YUV             "s5k5cagxyuv"
 #define SENSOR_DRVNAME_S5K4H5YX_2LANE_MIPI_RAW  "s5k4h5yx2lanemipiraw"
 #define SENSOR_DRVNAME_S5K5E2YA_MIPI_RAW        "s5k5e2yamipiraw"
-#define SENSOR_DRVNAME_S5K3L2_MIPI_RAW        "s5k3l2mipiraw"
 #define SENSOR_DRVNAME_S5K8AAYX_MIPI_YUV        "s5k8aayxmipiyuv"
 #define SENSOR_DRVNAME_S5K8AAYX_YUV             "s5k8aayxyuv"
 /*HI*/
@@ -346,7 +362,6 @@
 /*GC*/
 #define SENSOR_DRVNAME_GC2035_YUV               "gc2035_yuv"
 #define SENSOR_DRVNAME_GC2235_RAW               "gc2235_raw"
-#define SENSOR_DRVNAME_GC2355_MIPI_RAW          "gc2355mipiraw"
 #define SENSOR_DRVNAME_GC0330_YUV               "gc0330_yuv"
 #define SENSOR_DRVNAME_GC0329_YUV               "gc0329yuv"
 #define SENSOR_DRVNAME_GC2145_MIPI_YUV          "gc2145mipiyuv"

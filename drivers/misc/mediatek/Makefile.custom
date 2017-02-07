@@ -123,10 +123,6 @@ CUSTOM_KERNEL_FLAGS := $(addprefix -D, $(shell echo \
              $(CONFIG_CUSTOM_KERNEL_IMGSENSOR) | tr a-z A-Z))
 ccflags-y += $(CUSTOM_KERNEL_FLAGS)
 
-ifeq ($(ILI9881_USE_FOR_YT55F83E1),yes)
-ccflags-y += -DILI9881_USE_FOR_YT55F83E1
-endif
-
 # Add for ptgen
 ccflags-y += -I$(objtree)/PTGEN/inc
 

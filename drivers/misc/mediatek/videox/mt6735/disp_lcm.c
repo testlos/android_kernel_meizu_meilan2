@@ -14,6 +14,8 @@ static disp_lcm_handle _disp_lcm_driver[MAX_LCM_NUMBER] = {0};
 extern LCM_DRIVER* lcm_driver_list[];
 extern unsigned int lcm_count;
 
+ LCM_DRIVER  *lcm_drv_name =NULL;      //yudengwu
+
 int _lcm_count(void)
 {
 	return lcm_count;
@@ -235,7 +237,10 @@ disp_lcm_handle* disp_lcm_probe(char* plcm_name, LCM_INTERFACE_ID lcm_id)
 		DISPERR("FATAL ERROR!!!No LCM Driver defined\n");
 		return NULL;
 	}
-	
+	else
+	{
+		lcm_drv_name = lcm_drv;    //modify yudengwu 
+	}
 	plcm = kzalloc(sizeof(uint8_t*) *sizeof(disp_lcm_handle), GFP_KERNEL);
 	lcm_param = kzalloc(sizeof(uint8_t*) *sizeof(LCM_PARAMS), GFP_KERNEL);
 	if(plcm && lcm_param)

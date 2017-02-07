@@ -840,11 +840,7 @@ static kal_int32 read_adc_v_bat_temp(void *data)
         //no HW support
     #else
         bm_print(BM_LOG_FULL, "[read_adc_v_bat_temp] return PMIC_IMM_GetOneChannelValue(4,times,1);\n");
-		#ifndef TARGET_BUILD_VARIANT_ENG
         *(kal_int32*)(data) = PMIC_IMM_GetOneChannelValue(MT6328_AUX_BATON_AP,*(kal_int32*)(data),1);
-		#else
-		*(kal_int32*)(data) = 823;//fix at 25C
-		#endif
     #endif
 #endif
 

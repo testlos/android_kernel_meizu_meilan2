@@ -77,6 +77,8 @@ static int kxtj2_1009_i2c_remove(struct i2c_client *client);
 static int kxtj2_1009_suspend(struct i2c_client *client, pm_message_t msg);
 static int kxtj2_1009_resume(struct i2c_client *client);
 
+extern struct acc_hw* kxtj2_1009_get_cust_acc_hw(void); //wenggaojian@wind-mobi.com
+
 static int kxtj2_1009_local_init(void);
 static int  kxtj2_1009_remove(void);
 
@@ -180,12 +182,38 @@ static struct acc_init_info kxtj2_1009_init_info = {
 		.uninit = kxtj2_1009_remove,
 	
 };
+/*dixiaobing@wind-mobi.com 20150617 start*/
+#define GSENSOR_FACTORY_CALIBRATION
+#ifdef GSENSOR_FACTORY_CALIBRATION
+#include <linux/meizu.h>
+static void meizu_gsensor_node_init(void);
+static void meizu_gsensor_node_uninit(void);
+static struct meizu_classdev *gsensor = NULL;
+static int acc_enable_value = 0;
+static int acc_calibration_value = 0;
+static int acc_x_calibration_value =0;
+static int acc_y_calibration_value =0;
+static int acc_z_calibration_value =0;
+static int acc_x_offset_value =0;
+static int acc_y_offset_value =0;
+static int acc_z_offset_value =0;
+static int acc_x_cali_value =0;
+static int acc_y_cali_value =0;
+static int acc_z_cali_value =0;
+#endif
+/*dixiaobing@wind-mobi.com 20150617 end*/
 
 /*----------------------------------------------------------------------------*/
 #define GSE_TAG                  "[Gsensor] "
+#if 0
 #define GSE_FUN(f)               printk( GSE_TAG"%s\n", __FUNCTION__)
 #define GSE_ERR(fmt, args...)    printk(KERN_ERR GSE_TAG"%s %d : "fmt, __FUNCTION__, __LINE__, ##args)
 #define GSE_LOG(fmt, args...)    printk( GSE_TAG fmt, ##args)
+#else
+#define GSE_FUN(f)
+#define GSE_ERR(fmt, args...) 
+#define GSE_LOG(fmt, args...) 
+#endif
 /*----------------------------------------------------------------------------*/
 static struct data_resolution kxtj2_1009_data_resolution[1] = {
  /* combination by {FULL_RES,RANGE}*/
@@ -237,7 +265,7 @@ static int KXTJ2_1009_SetDataResolution(struct kxtj2_1009_i2c_data *obj)
 
 	if(hwmsen_read_block(obj->client, KXTJ2_1009_REG_DATA_RESOLUTION, databuf, 0x01))
 	{
-		printk("kxtj2_1009 read Dataformat failt \n");
+		GSE_ERR("kxtj2_1009 read Dataformat failt \n");
 		return KXTJ2_1009_ERR_I2C;
 	}
 
@@ -415,7 +443,7 @@ static int KXTJ2_1009_ReadOffset(struct i2c_client *client, s8 ofs[KXTJ2_1009_AX
 
 	ofs[1]=ofs[2]=ofs[0]=0x00;
 
-	printk("offesx=%x, y=%x, z=%x",ofs[0],ofs[1],ofs[2]);
+	GSE_LOG("offesx=%x, y=%x, z=%x",ofs[0],ofs[1],ofs[2]);
 	
 	return err;    
 }
@@ -606,12 +634,12 @@ static int KXTJ2_1009_CheckDeviceID(struct i2c_client *client)
 
 	if(false)
 	{
-		printk("KXTJ2_1009_CheckDeviceID 0x%x failt!\n ", databuf[0]);
+		GSE_ERR("KXTJ2_1009_CheckDeviceID 0x%x failt!\n ", databuf[0]);
 		return KXTJ2_1009_ERR_IDENTIFICATION;
 	}
 	else
 	{
-		printk("KXTJ2_1009_CheckDeviceID 0x%x pass!\n ", databuf[0]);
+		GSE_LOG("KXTJ2_1009_CheckDeviceID 0x%x pass!\n ", databuf[0]);
 	}
 	
 	exit_KXTJ2_1009_CheckDeviceID:
@@ -719,7 +747,7 @@ static int KXTJ2_1009_SetDataFormat(struct i2c_client *client, u8 dataformat)
 
 	if(hwmsen_read_block(client, KXTJ2_1009_REG_DATA_FORMAT, databuf, 0x01))
 	{
-		printk("kxtj2_1009 read Dataformat failt \n");
+		GSE_ERR("kxtj2_1009 read Dataformat failt \n");
 		return KXTJ2_1009_ERR_I2C;
 	}
 
@@ -738,7 +766,7 @@ static int KXTJ2_1009_SetDataFormat(struct i2c_client *client, u8 dataformat)
 
 	KXTJ2_1009_SetPowerMode(client, cur_sensor_power/*true*/);
 	
-	printk("KXTJ2_1009_SetDataFormat OK! \n");
+	GSE_LOG("KXTJ2_1009_SetDataFormat OK! \n");
 	
 
 	return KXTJ2_1009_SetDataResolution(obj);    
@@ -757,7 +785,7 @@ static int KXTJ2_1009_SetBWRate(struct i2c_client *client, u8 bwrate)
 
 	if(hwmsen_read_block(client, KXTJ2_1009_REG_BW_RATE, databuf, 0x01))
 	{
-		printk("kxtj2_1009 read rate failt \n");
+		GSE_ERR("kxtj2_1009 read rate failt \n");
 		return KXTJ2_1009_ERR_I2C;
 	}
 
@@ -776,7 +804,7 @@ static int KXTJ2_1009_SetBWRate(struct i2c_client *client, u8 bwrate)
 
 	
 	KXTJ2_1009_SetPowerMode(client, cur_sensor_power/*true*/);
-	printk("KXTJ2_1009_SetBWRate OK! \n");
+	GSE_LOG("KXTJ2_1009_SetBWRate OK! \n");
 	
 	return KXTJ2_1009_SUCCESS;    
 }
@@ -885,7 +913,7 @@ static int KXTJ2_1009_ReadChipInfo(struct i2c_client *client, char *buf, int buf
 }
 
 /*Kionix Auto-Cali Start*/
-#define KIONIX_AUTO_CAL     //Setup AUTO-Cali parameter
+//#define KIONIX_AUTO_CAL     //Setup AUTO-Cali parameter
 #ifdef KIONIX_AUTO_CAL
 //#define DEBUG_MSG_CAL
 #define Sensitivity_def      1024	//	
@@ -964,7 +992,7 @@ static int KXTJ2_1009_ReadSensorData(struct i2c_client *client, char *buf, int b
         {
 
             #ifdef DEBUG_MSG_CAL
-            printk("+++KXTJ2 Calibration Raw Data,%d,%d,%d\n",raw[0],raw[1],raw[2]);
+            GSE_LOG("+++KXTJ2 Calibration Raw Data,%d,%d,%d\n",raw[0],raw[1],raw[2]);
             #endif
             temp_zsum = 0;
             Wave_Max =-4095;
@@ -997,7 +1025,7 @@ static int KXTJ2_1009_ReadSensorData(struct i2c_client *client, char *buf, int b
                     Z_AVG[0] = temp_zsum / BUF_RANGE;
                     //k
     		        #ifdef DEBUG_MSG_CAL
-                    printk("+++ Z_AVG=%d\n ", Z_AVG[0]);
+                    GSE_LOG("+++ Z_AVG=%d\n ", Z_AVG[0]);
                     #endif
                 }
                 else 
@@ -1005,7 +1033,7 @@ static int KXTJ2_1009_ReadSensorData(struct i2c_client *client, char *buf, int b
                     Z_AVG[1] = temp_zsum / BUF_RANGE;
                     //k 
 		            #ifdef DEBUG_MSG_CAL
-                    printk("--- Z_AVG=%d\n ", Z_AVG[1]);
+                    GSE_LOG("--- Z_AVG=%d\n ", Z_AVG[1]);
                     #endif
                 }
                 // printk("KXTJ2 start Z compensation Z_AVG Max Min,%d,%d,%d\n",(temp_zsum / BUF_RANGE),Wave_Max,Wave_Min);
@@ -1014,7 +1042,7 @@ static int KXTJ2_1009_ReadSensorData(struct i2c_client *client, char *buf, int b
         else if(abs((abs(raw[2])- Sensitivity_def))  > ((Detection_range)+ 154))
         {
             #ifdef DEBUG_MSG_CAL
-            printk("KXTJ2 out of SPEC Raw Data,%d,%d,%d\n",raw[0],raw[1],raw[2]);
+            GSE_LOG("KXTJ2 out of SPEC Raw Data,%d,%d,%d\n",raw[0],raw[1],raw[2]);
             #endif
         }
         //else
@@ -1030,7 +1058,7 @@ static int KXTJ2_1009_ReadSensorData(struct i2c_client *client, char *buf, int b
         //k
         #ifdef DEBUG_MSG_CAL
         //printk("---KXTJ2 Calibration Raw Data,%d,%d,%d==> Z+=%d  Z-=%d \n",raw[0],raw[1],raw[2],Z_AVG[0],Z_AVG[1]);
-        printk("---After Cali,X=%d,Y=%d,Z=%d \n",raw[0],raw[1],raw[2]);
+        GSE_LOG("---After Cali,X=%d,Y=%d,Z=%d \n",raw[0],raw[1],raw[2]);
         #endif
         obj->data[KXTJ2_1009_AXIS_X]=raw[0];
         obj->data[KXTJ2_1009_AXIS_Y]=raw[1];
@@ -1039,9 +1067,18 @@ static int KXTJ2_1009_ReadSensorData(struct i2c_client *client, char *buf, int b
 /*Kionix Auto-Cali End*/
 
 		//printk("raw data x=%d, y=%d, z=%d \n",obj->data[KXTJ2_1009_AXIS_X],obj->data[KXTJ2_1009_AXIS_Y],obj->data[KXTJ2_1009_AXIS_Z]);
-		obj->data[KXTJ2_1009_AXIS_X] += obj->cali_sw[KXTJ2_1009_AXIS_X];
+ /*dixiaobing@wind-mobi.com 20150617 start*/
+ #ifdef GSENSOR_FACTORY_CALIBRATION
+       //obj->data[KXTJ2_1009_AXIS_X] += obj->cali_sw[KXTJ2_1009_AXIS_X];
+		//obj->data[KXTJ2_1009_AXIS_Y] += obj->cali_sw[KXTJ2_1009_AXIS_Y];
+		//obj->data[KXTJ2_1009_AXIS_Z] += obj->cali_sw[KXTJ2_1009_AXIS_Z];
+#else
+        obj->data[KXTJ2_1009_AXIS_X] += obj->cali_sw[KXTJ2_1009_AXIS_X];
 		obj->data[KXTJ2_1009_AXIS_Y] += obj->cali_sw[KXTJ2_1009_AXIS_Y];
 		obj->data[KXTJ2_1009_AXIS_Z] += obj->cali_sw[KXTJ2_1009_AXIS_Z];
+#endif
+/*dixiaobing@wind-mobi.com 20150617 end*/
+
 		
 		//printk("cali_sw x=%d, y=%d, z=%d \n",obj->cali_sw[KXTJ2_1009_AXIS_X],obj->cali_sw[KXTJ2_1009_AXIS_Y],obj->cali_sw[KXTJ2_1009_AXIS_Z]);
 		
@@ -1061,6 +1098,14 @@ static int KXTJ2_1009_ReadSensorData(struct i2c_client *client, char *buf, int b
 		acc[KXTJ2_1009_AXIS_Z] = acc[KXTJ2_1009_AXIS_Z] * GRAVITY_EARTH_1000 / obj->reso->sensitivity;		
 #endif	
 
+   /*dixiaobing@wind-mobi.com 20150617 start*/
+   #ifdef GSENSOR_FACTORY_CALIBRATION
+	    acc[KXTJ2_1009_AXIS_X] +=acc_x_cali_value;
+		acc[KXTJ2_1009_AXIS_Y] +=acc_y_cali_value;
+		acc[KXTJ2_1009_AXIS_Z] +=acc_z_cali_value;
+	//printk("dixiaobinggsensor333	acc[KXTJ2_1009_AXIS_X]=%d,acc[KXTJ2_1009_AXIS_Y]=%d,acc[KXTJ2_1009_AXIS_Z]=%d\n",acc[KXTJ2_1009_AXIS_X],acc[KXTJ2_1009_AXIS_Y],acc[KXTJ2_1009_AXIS_Z]);
+   #endif
+	/*dixiaobing@wind-mobi.com 20150617 end*/
 		sprintf(buf, "%04x %04x %04x", acc[KXTJ2_1009_AXIS_X], acc[KXTJ2_1009_AXIS_Y], acc[KXTJ2_1009_AXIS_Z]);
 		if(atomic_read(&obj->trace) & ADX_TRC_IOCTL)
 		{
@@ -1118,7 +1163,7 @@ static int KXTJ2_1009_InitSelfTest(struct i2c_client *client)
 	{
 		return res;
 	}
-	printk("step1: result = %x",result);
+	GSE_LOG("step1: result = %x",result);
 	if(result != 0xaa)
 		return -EINVAL;
 
@@ -1134,7 +1179,7 @@ static int KXTJ2_1009_InitSelfTest(struct i2c_client *client)
 	{
 		return res;
 	}
-	printk("step3: result = %x",result);
+	GSE_LOG("step3: result = %x",result);
 	if(result != 0xAA)
 		return -EINVAL;
 		
@@ -1144,7 +1189,7 @@ static int KXTJ2_1009_InitSelfTest(struct i2c_client *client)
 	{
 		return res;
 	}
-	printk("step4: result = %x",result);
+	GSE_LOG("step4: result = %x",result);
 	if(result != 0x55)
 		return -EINVAL;
 	else
@@ -1558,9 +1603,9 @@ static ssize_t show_power_status_value(struct device_driver *ddri, char *buf)
 	}
     
 	if(sensor_power)
-		printk("G sensor is in work mode, sensor_power = %d\n", sensor_power);
+		GSE_LOG("G sensor is in work mode, sensor_power = %d\n", sensor_power);
 	else
-		printk("G sensor is in standby mode, sensor_power = %d\n", sensor_power);
+		GSE_LOG("G sensor is in standby mode, sensor_power = %d\n", sensor_power);
 
 	return snprintf(buf, PAGE_SIZE, "%x\n", databuf[0]);
 }
@@ -1582,7 +1627,7 @@ static u8 i2c_dev_reg =0 ;
 
 static ssize_t show_register(struct device_driver *pdri, char *buf)
 {
-	printk("i2c_dev_reg is 0x%2x \n", i2c_dev_reg);
+	GSE_LOG("i2c_dev_reg is 0x%2x \n", i2c_dev_reg);
 
 	return 0;
 }
@@ -1590,7 +1635,7 @@ static ssize_t show_register(struct device_driver *pdri, char *buf)
 static ssize_t store_register(struct device_driver *ddri, const char *buf, size_t count)
 {
 	i2c_dev_reg = simple_strtoul(buf, NULL, 16);
-	printk("set i2c_dev_reg = 0x%2x \n", i2c_dev_reg);
+	GSE_LOG("set i2c_dev_reg = 0x%2x \n", i2c_dev_reg);
 
 	return 0;
 }
@@ -1604,7 +1649,7 @@ static ssize_t store_register_value(struct device_driver *ddri, const char *buf,
 	memset(databuf, 0, sizeof(u8)*2);    
 
 	input_value = simple_strtoul(buf, NULL, 16);
-	printk("input_value = 0x%2x \n", (unsigned int)input_value);
+	GSE_LOG("input_value = 0x%2x \n", (unsigned int)input_value);
 
 	if(NULL == obj)
 	{
@@ -1614,7 +1659,7 @@ static ssize_t store_register_value(struct device_driver *ddri, const char *buf,
 
 	databuf[0] = i2c_dev_reg;
 	databuf[1] = input_value;
-	printk("databuf[0]=0x%2x  databuf[1]=0x%2x \n", databuf[0],databuf[1]);
+	GSE_LOG("databuf[0]=0x%2x  databuf[1]=0x%2x \n", databuf[0],databuf[1]);
 
 	res = i2c_master_send(obj->client, databuf, 0x2);
 
@@ -1645,7 +1690,7 @@ static ssize_t show_register_value(struct device_driver *ddri, char *buf)
 			return KXTJ2_1009_ERR_I2C;
 		}
 
-		printk("i2c_dev_reg=0x%2x  data=0x%2x \n", i2c_dev_reg,databuf[0]);
+		GSE_LOG("i2c_dev_reg=0x%2x  data=0x%2x \n", i2c_dev_reg,databuf[0]);
 	
 		return 0;
 		
@@ -1863,7 +1908,47 @@ static long kxtj2_1009_compat_ioctl(struct file *file, unsigned int cmd,
 		        return err;
 		    }
         break;
-
+/*wengggaojian@wind-mobi.com begin */		
+	case COMPAT_GSENSOR_IOCTL_SET_CALI:
+            if (arg32 == NULL)
+            {
+                err = -EINVAL;
+                break;    
+            }
+		
+		    err = file->f_op->unlocked_ioctl(file, GSENSOR_IOCTL_SET_CALI, (unsigned long)arg32);
+		    if (err){
+		        GSE_ERR("GSENSOR_IOCTL_SET_CALI unlocked_ioctl failed.");
+		        return err;
+		    }
+        break;
+        case COMPAT_GSENSOR_IOCTL_GET_CALI:
+            if (arg32 == NULL)
+            {
+                err = -EINVAL;
+                break;    
+            }
+		
+		    err = file->f_op->unlocked_ioctl(file, GSENSOR_IOCTL_GET_CALI, (unsigned long)arg32);
+		    if (err){
+		        GSE_ERR("GSENSOR_IOCTL_GET_CALI unlocked_ioctl failed.");
+		        return err;
+		    }
+        break;
+        case COMPAT_GSENSOR_IOCTL_CLR_CALI:
+            if (arg32 == NULL)
+            {
+                err = -EINVAL;
+                break;    
+            }
+		
+		    err = file->f_op->unlocked_ioctl(file, GSENSOR_IOCTL_CLR_CALI, (unsigned long)arg32);
+		    if (err){
+		        GSE_ERR("GSENSOR_IOCTL_CLR_CALI unlocked_ioctl failed.");
+		        return err;
+		    }
+        break;		
+/*wenggaojian@wind-mobi.com end */
         default:
             GSE_ERR("unknown IOCTL: 0x%08x\n", cmd);
             err = -ENOIOCTLCMD;
@@ -2229,11 +2314,11 @@ static int kxtj2_1009_enable_nodata(int en)
 
     if(err != KXTJ2_1009_SUCCESS)
 	{
-		printk("kxtj2_1009_enable_nodata fail!\n");
+		GSE_ERR("kxtj2_1009_enable_nodata fail!\n");
 		return -1;
 	}
 
-    printk("kxtj2_1009_enable_nodata OK!\n");
+    GSE_LOG("kxtj2_1009_enable_nodata OK!\n");
 	return 0;
 }
 
@@ -2368,9 +2453,11 @@ static int kxtj2_1009_get_data(int* x ,int* y,int* z, int* status)
 		}
 
 		//sscanf(buff, "%x %x %x", req.get_data_rsp.int16_Data[0], req.get_data_rsp.int16_Data[1], req.get_data_rsp.int16_Data[2]);
-		*x = (int)req.get_data_rsp.int16_Data[0]*GRAVITY_EARTH_1000/1000;
-		*y = (int)req.get_data_rsp.int16_Data[1]*GRAVITY_EARTH_1000/1000;
-		*z = (int)req.get_data_rsp.int16_Data[2]*GRAVITY_EARTH_1000/1000;
+		/*wenggaojian@wind-mobi.com begin */
+		*x = req.get_data_rsp.int16_Data[0];
+		*y = req.get_data_rsp.int16_Data[1];
+		*z = req.get_data_rsp.int16_Data[2];
+		/*wenggaojian@wind-mobi.com end */
 		GSE_ERR("x = %d, y = %d, z = %d\n", *x, *y, *z);
 		*status = SENSOR_STATUS_ACCURACY_MEDIUM;
 
@@ -2406,7 +2493,7 @@ static int kxtj2_1009_i2c_probe(struct i2c_client *client, const struct i2c_devi
 	
 	memset(obj, 0, sizeof(struct kxtj2_1009_i2c_data));
 
-	obj->hw = get_cust_acc_hw();
+	obj->hw = kxtj2_1009_get_cust_acc_hw(); //wenggaojian@wind-mobi.com
 	
 	if(0 != (err = hwmsen_get_convert(obj->hw->direction, &obj->cvt)))
 	{
@@ -2493,13 +2580,19 @@ static int kxtj2_1009_i2c_probe(struct i2c_client *client, const struct i2c_devi
 	 	GSE_ERR("register acc data path err\n");
 		goto exit_create_attr_failed;
 	}
-	err = batch_register_support_info(ID_ACCELEROMETER,ctl.is_support_batch, 102, 0); //divisor is 1000/9.8
+	err = batch_register_support_info(ID_ACCELEROMETER,ctl.is_support_batch, 1000, 0); //wenggaojian@wind-mobi.com
     if(err)
     {
         GSE_ERR("register gsensor batch support err = %d\n", err);
         goto exit_create_attr_failed;
     }
-
+	
+/*dixiaobing@wind-mobi.com 20150617 start*/
+#ifdef GSENSOR_FACTORY_CALIBRATION
+    meizu_gsensor_node_init();
+#endif
+/*dixiaobing@wind-mobi.com 20150617 end*/
+	
 #if defined(CONFIG_HAS_EARLYSUSPEND) && defined(USE_EARLY_SUSPEND)
 	obj->early_drv.level    = EARLY_SUSPEND_LEVEL_DISABLE_FB - 1,
 	obj->early_drv.suspend  = kxtj2_1009_early_suspend,
@@ -2542,12 +2635,17 @@ static int kxtj2_1009_i2c_remove(struct i2c_client *client)
 	kxtj2_1009_i2c_client = NULL;
 	i2c_unregister_device(client);
 	kfree(i2c_get_clientdata(client));
+/*dixiaobing@wind-mobi.com 20150617 start*/
+#ifdef GSENSOR_FACTORY_CALIBRATION
+	meizu_gsensor_node_uninit();
+#endif
+/*dixiaobing@wind-mobi.com 20150617 end*/
 	return 0;
 }
 /*----------------------------------------------------------------------------*/
 static int kxtj2_1009_remove(void)
 {
-    struct acc_hw *hw = get_cust_acc_hw();
+    struct acc_hw *hw = kxtj2_1009_get_cust_acc_hw(); //wenggaojian@wind-mobi.com
 
     GSE_FUN();    
     KXTJ2_1009_power(hw, 0);    
@@ -2557,7 +2655,7 @@ static int kxtj2_1009_remove(void)
 
 static int  kxtj2_1009_local_init(void)
 {
-    struct acc_hw *hw = get_cust_acc_hw();
+    struct acc_hw *hw = kxtj2_1009_get_cust_acc_hw(); //wenggaojian@wind-mobi.com
 	//printk("fwq loccal init+++\n");
 
 	KXTJ2_1009_power(hw, 1);
@@ -2574,10 +2672,11 @@ static int  kxtj2_1009_local_init(void)
 	return 0;
 }
 
+
 /*----------------------------------------------------------------------------*/
 static int __init kxtj2_1009_init(void)
 {
-	struct acc_hw *hw = get_cust_acc_hw();
+	struct acc_hw *hw = kxtj2_1009_get_cust_acc_hw(); //wenggaojian@wind-mobi.com
 
     GSE_FUN();
 	GSE_LOG("%s: i2c_number=%d\n", __func__,hw->i2c_num);
@@ -2590,6 +2689,297 @@ static void __exit kxtj2_1009_exit(void)
 {
 	GSE_FUN();
 }
+/*dixiaobing@wind-mobi.com 20150617 start*/
+#ifdef GSENSOR_FACTORY_CALIBRATION
+static ssize_t meizu_acc_enable_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", acc_enable_value);
+}
+
+static ssize_t meizu_acc_enable_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	sscanf(buf, "%d\n",&acc_enable_value );
+
+	kxtj2_1009_enable_nodata(acc_enable_value);
+
+	return size;
+}
+#if 0
+static ssize_t meizu_acc_self_test_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+
+}
+
+static ssize_t meizu_acc_self_test_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+
+	return size;
+}
+#endif
+static ssize_t meizu_acc_calibration_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+     int x, y, z, status;
+     int sumx = 0;
+	 int sumy = 0;
+	 int sumz = 0;
+	 int count = 0;
+	 int acc[KXTJ2_1009_AXES_NUM];
+	 int acc_enable = 0;
+	 struct i2c_client *client = kxtj2_1009_i2c_client;
+	 struct kxtj2_1009_i2c_data *obj = (struct kxtj2_1009_i2c_data*)i2c_get_clientdata(client);
+	 if(!sensor_power)
+	 {
+	    acc_enable = 1;
+	    kxtj2_1009_enable_nodata(1);
+	 }
+	 while(count <20)
+	 {
+		 msleep(20);
+		 KXTJ2_1009_ReadData(client, obj->data);
+
+		 acc[obj->cvt.map[KXTJ2_1009_AXIS_X]] = obj->cvt.sign[KXTJ2_1009_AXIS_X]*obj->data[KXTJ2_1009_AXIS_X];
+		 acc[obj->cvt.map[KXTJ2_1009_AXIS_Y]] = obj->cvt.sign[KXTJ2_1009_AXIS_Y]*obj->data[KXTJ2_1009_AXIS_Y];
+		 acc[obj->cvt.map[KXTJ2_1009_AXIS_Z]] = obj->cvt.sign[KXTJ2_1009_AXIS_Z]*obj->data[KXTJ2_1009_AXIS_Z];
+
+		 acc[KXTJ2_1009_AXIS_X] = acc[KXTJ2_1009_AXIS_X] * GRAVITY_EARTH_1000 / obj->reso->sensitivity;
+		 acc[KXTJ2_1009_AXIS_Y] = acc[KXTJ2_1009_AXIS_Y] * GRAVITY_EARTH_1000 / obj->reso->sensitivity;
+		 acc[KXTJ2_1009_AXIS_Z] = acc[KXTJ2_1009_AXIS_Z] * GRAVITY_EARTH_1000 / obj->reso->sensitivity;  
+
+		 sumx = sumx+acc[KXTJ2_1009_AXIS_X];
+		 sumy = sumy+acc[KXTJ2_1009_AXIS_Y];
+		 sumz = sumz+acc[KXTJ2_1009_AXIS_Z];
+		 count++;
+	 }
+	 x=sumx/20;
+	 y=sumy/20;
+	 z=sumz/20;
+	 if(acc_enable)
+	 {
+		acc_enable = 0;
+		kxtj2_1009_enable_nodata(0);
+	 }
+
+	 acc_x_calibration_value = 0 - x;
+	 acc_y_calibration_value = 0 - y;
+	 acc_z_calibration_value = 9807 - z;
+
+	acc_x_cali_value =acc_x_calibration_value;
+	acc_y_cali_value =acc_y_calibration_value;
+	acc_z_cali_value =acc_z_calibration_value;
+     
+	return sprintf(buf, "%d\n",1);
+
+	//return sprintf(buf, "%d,%d,%d\n", acc_x_calibration_value,acc_y_calibration_value,acc_z_calibration_value);
+}
+#if 1
+static ssize_t meizu_acc_calibration_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+    
+		int x, y, z, status;
+		int sumx = 0;
+		int sumy = 0;
+		int sumz = 0;
+		int count = 0;
+		int acc[KXTJ2_1009_AXES_NUM];
+	    int acc_enable = 0;
+		struct i2c_client *client = kxtj2_1009_i2c_client;
+		struct kxtj2_1009_i2c_data *obj = (struct kxtj2_1009_i2c_data*)i2c_get_clientdata(client);
+		sscanf(buf, "%d\n",&acc_calibration_value );
+        if(acc_calibration_value)
+      	{
+		    if(!sensor_power)
+			{
+			   acc_enable = 1;
+			   kxtj2_1009_enable_nodata(1);
+			}
+			while(count <20)
+			{
+				msleep(20);
+				KXTJ2_1009_ReadData(client, obj->data);
+
+				acc[obj->cvt.map[KXTJ2_1009_AXIS_X]] = obj->cvt.sign[KXTJ2_1009_AXIS_X]*obj->data[KXTJ2_1009_AXIS_X];
+				acc[obj->cvt.map[KXTJ2_1009_AXIS_Y]] = obj->cvt.sign[KXTJ2_1009_AXIS_Y]*obj->data[KXTJ2_1009_AXIS_Y];
+				acc[obj->cvt.map[KXTJ2_1009_AXIS_Z]] = obj->cvt.sign[KXTJ2_1009_AXIS_Z]*obj->data[KXTJ2_1009_AXIS_Z];
+
+				acc[KXTJ2_1009_AXIS_X] = acc[KXTJ2_1009_AXIS_X] * GRAVITY_EARTH_1000 / obj->reso->sensitivity;
+				acc[KXTJ2_1009_AXIS_Y] = acc[KXTJ2_1009_AXIS_Y] * GRAVITY_EARTH_1000 / obj->reso->sensitivity;
+				acc[KXTJ2_1009_AXIS_Z] = acc[KXTJ2_1009_AXIS_Z] * GRAVITY_EARTH_1000 / obj->reso->sensitivity;  
+
+				sumx = sumx+acc[KXTJ2_1009_AXIS_X];
+				sumy = sumy+acc[KXTJ2_1009_AXIS_Y];
+				sumz = sumz+acc[KXTJ2_1009_AXIS_Z];
+				count++;
+			}
+			x=sumx/20;
+			y=sumy/20;
+			z=sumz/20;
+			if(acc_enable)
+			{
+			   acc_enable = 0;
+			   kxtj2_1009_enable_nodata(0);
+			}
+
+			acc_x_calibration_value = 0 - x;
+			acc_y_calibration_value = 0 - y;
+			acc_z_calibration_value = 9807 - z;
+			acc_x_cali_value =acc_x_calibration_value;
+			acc_y_cali_value =acc_y_calibration_value;
+			acc_z_cali_value =acc_z_calibration_value;
+        }
+	return 1;
+      	
+}
+
+static ssize_t meizu_acc_x_calibbias_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+     return sprintf(buf, "%d\n", acc_x_calibration_value);
+}
+
+static ssize_t meizu_acc_y_calibbias_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+     return sprintf(buf, "%d\n", acc_y_calibration_value);
+}
+
+static ssize_t meizu_acc_z_calibbias_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+     return sprintf(buf, "%d\n", acc_z_calibration_value);
+}
+static ssize_t meizu_acc_x_offset_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+     sscanf(buf, "%d\n",&acc_x_offset_value );
+	 acc_x_cali_value = acc_x_offset_value;
+	 return size;
+}
+
+static ssize_t meizu_acc_x_offset_show(struct device *dev,
+                struct device_attribute *attr, char *buf)
+{
+     return sprintf(buf, "%d\n", acc_x_cali_value);
+}
+
+static ssize_t meizu_acc_y_offset_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+     sscanf(buf, "%d\n",&acc_y_offset_value );
+	 acc_y_cali_value = acc_y_offset_value;
+	 return size;
+}
+
+static ssize_t meizu_acc_y_offset_show(struct device *dev,
+                struct device_attribute *attr, char *buf)
+{
+     return sprintf(buf, "%d\n", acc_y_cali_value);
+}
+
+static ssize_t meizu_acc_z_offset_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	sscanf(buf, "%d\n",&acc_z_offset_value );
+	acc_z_cali_value = acc_z_offset_value;
+	return size;
+}
+static ssize_t meizu_acc_z_offset_show(struct device *dev,
+                struct device_attribute *attr, char *buf)
+{
+     return sprintf(buf, "%d\n", acc_z_cali_value);
+}
+#endif
+static DEVICE_ATTR(acc_enable, 0664, meizu_acc_enable_show, meizu_acc_enable_store);
+static DEVICE_ATTR(acc_self_test, 0664, NULL,NULL/*meizu_acc_self_test_show, meizu_acc_self_test_store*/);
+static DEVICE_ATTR(acc_calibration, 0664, meizu_acc_calibration_show, meizu_acc_calibration_store);
+static DEVICE_ATTR(acc_x_calibbias, 0664, meizu_acc_x_calibbias_show, NULL);
+static DEVICE_ATTR(acc_y_calibbias, 0664, meizu_acc_y_calibbias_show, NULL);
+static DEVICE_ATTR(acc_z_calibbias, 0664, meizu_acc_z_calibbias_show, NULL);
+static DEVICE_ATTR(acc_x_offset, 0664, meizu_acc_x_offset_show,meizu_acc_x_offset_store);
+static DEVICE_ATTR(acc_y_offset, 0664, meizu_acc_y_offset_show,meizu_acc_y_offset_store);
+static DEVICE_ATTR(acc_z_offset, 0664, meizu_acc_z_offset_show,meizu_acc_z_offset_store);
+
+static void meizu_gsensor_node_init(void)
+{
+        int ret ;
+        
+		gsensor = kzalloc(sizeof(struct meizu_classdev), GFP_KERNEL);
+        if (!gsensor) {
+           GSE_ERR("[gsensor kzalloc fail!\n");
+		   return;
+  	    }
+
+        gsensor->name = "acc";
+		ret = meizu_classdev_register(NULL, gsensor);
+		if(ret)
+	    {
+	       GSE_ERR("[gsensor meizu_classdev_register fail!\n");
+	       return;
+	    }
+#if 0
+		ret = device_create_file(gsensor->dev, &dev_attr_acc_enable);
+		if(ret)
+	    {
+	       GSE_ERR("[gsensor device_create_file acc_enable fail!\n");
+	    }
+		ret = device_create_file(gsensor->dev, &dev_attr_acc_self_test);
+		if(ret)
+	    {
+	       GSE_ERR("[gsensor device_create_file acc_self_test fail!\n");
+	    }
+#endif
+        ret = device_create_file(gsensor->dev, &dev_attr_acc_calibration);
+			if(ret)
+	    {
+	       GSE_ERR("[gsensor device_create_file acc_calibration fail!\n");
+	    }
+        ret = device_create_file(gsensor->dev, &dev_attr_acc_x_calibbias);
+		if(ret)
+	    {
+	       GSE_ERR("[gsensor device_create_file acc_x_calibbias fail!\n");
+	    }
+		ret = device_create_file(gsensor->dev, &dev_attr_acc_y_calibbias);
+		if(ret)
+	    {
+	       GSE_ERR("[gsensor device_create_file acc_y_calibbias fail!\n");
+	    }
+		ret = device_create_file(gsensor->dev, &dev_attr_acc_z_calibbias);
+		if(ret)
+	    {
+	       GSE_ERR("[gsensor device_create_file acc_z_calibbias fail!\n");
+	    }
+		ret = device_create_file(gsensor->dev, &dev_attr_acc_x_offset);
+		if(ret)
+	    {
+	       GSE_ERR("[gsensor device_create_file acc_x_offset fail!\n");
+	    }
+		ret = device_create_file(gsensor->dev, &dev_attr_acc_y_offset);
+		if(ret)
+	    {
+	       GSE_ERR("[gsensor device_create_file acc_y_offset fail!\n");
+	    }
+		ret = device_create_file(gsensor->dev, &dev_attr_acc_z_offset);
+		if(ret)
+	    {
+	       GSE_ERR("[gsensor device_create_file acc_z_offset fail!\n");
+	    }
+        return;
+}
+
+static void meizu_gsensor_node_uninit(void)
+{
+     meizu_classdev_unregister(gsensor);
+     kfree(gsensor);
+     gsensor = NULL;
+	 return;
+}
+#endif
+/*dixiaobing@wind-mobi.com 20150617 end*/
 /*----------------------------------------------------------------------------*/
 module_init(kxtj2_1009_init);
 module_exit(kxtj2_1009_exit);

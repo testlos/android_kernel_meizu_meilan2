@@ -821,7 +821,7 @@ static int hps_test1_proc_show(struct seq_file *m, void *v)
     return 0;
 }
 
-static int __cpuinit hps_test1_proc_write(struct file *file, const char __user *buffer, size_t count, loff_t *pos)
+static int hps_test1_proc_write(struct file *file, const char __user *buffer, size_t count, loff_t *pos)
 {
     int len = 0, test1 = 0;
     char desc[32];
@@ -936,6 +936,132 @@ static int hps_memory_debug_proc_write(struct file *file, const char __user *buf
 
 PROC_FOPS_RW(memory_debug);
 
+//gemingming@wind-mobi.com cpu use info 20150603 begin 
+
+#define MEIZU_CPU_INFO
+
+#ifdef MEIZU_CPU_INFO
+
+char *power_type = "NULL";
+
+static ssize_t power_control_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{	
+	//printk("[darren]-------------show\n");
+
+	if (hps_ctxt.is_hmp)
+		return sprintf(buf, " power type = %s\ncpu_num_limit = %d %d\n", power_type,hps_ctxt.little_num_limit_power_serv, hps_ctxt.big_num_limit_power_serv);
+	else
+		//return sprintf(buf, " power type = %s\ncpu_num_limit = %d\n", power_type,hps_ctxt.little_num_limit_power_serv);
+		return sprintf(buf, "%s\n", power_type);
+}
+
+
+static ssize_t power_control_store(struct device *dev,
+			      struct device_attribute *attr,
+			      const char *buf, size_t size)
+{
+	int little_num_limit_power_serv = 0;
+
+	sscanf(buf, "%s", power_type); 
+
+	if((strcmp(power_type,"low")) == 0)
+	{
+		//printk("=========== low gemingming little_num_limit_power_serv ===============\n");
+		little_num_limit_power_serv =3;
+        if (little_num_limit_power_serv > num_possible_little_cpus()
+            || little_num_limit_power_serv < 1)
+        {
+            hps_warn("hps_num_limit_power_serv_proc_write, bad argument(%u)\n", little_num_limit_power_serv);
+            return -EINVAL;
+        }
+
+        mutex_lock(&hps_ctxt.lock);
+
+        hps_ctxt.little_num_limit_power_serv = little_num_limit_power_serv;
+        if (num_online_little_cpus() > little_num_limit_power_serv)
+            hps_task_wakeup_nolock();
+
+        mutex_unlock(&hps_ctxt.lock);
+
+        return size;
+	}
+	else if((strcmp(power_type,"high")) == 0)
+	{
+		//printk("=========== high gemingming little_num_limit_power_serv ===============\n");
+		little_num_limit_power_serv =4;
+        if (little_num_limit_power_serv > num_possible_little_cpus()
+            || little_num_limit_power_serv < 1)
+        {
+            hps_warn("hps_num_limit_power_serv_proc_write, bad argument(%u)\n", little_num_limit_power_serv);
+            return -EINVAL;
+        }
+
+        mutex_lock(&hps_ctxt.lock);
+
+        hps_ctxt.little_num_limit_power_serv = little_num_limit_power_serv;
+        if (num_online_little_cpus() > little_num_limit_power_serv)
+            hps_task_wakeup_nolock();
+
+        mutex_unlock(&hps_ctxt.lock);
+
+        return size;
+	}
+	else if((strcmp(power_type,"normal")) == 0)
+	{
+		//printk("=========== normal gemingming little_num_limit_power_serv ===============\n");
+		little_num_limit_power_serv =4;
+        if (little_num_limit_power_serv > num_possible_little_cpus()
+            || little_num_limit_power_serv < 1)
+        {
+            hps_warn("hps_num_limit_power_serv_proc_write, bad argument(%u)\n", little_num_limit_power_serv);
+            return -EINVAL;
+        }
+
+        mutex_lock(&hps_ctxt.lock);
+
+        hps_ctxt.little_num_limit_power_serv = little_num_limit_power_serv;
+        if (num_online_little_cpus() > little_num_limit_power_serv)
+            hps_task_wakeup_nolock();
+
+        mutex_unlock(&hps_ctxt.lock);
+
+        return size;
+	}
+    else
+    {
+    	//printk("===========gemingming error===============\n");
+        hps_warn("hps_num_limit_power_serv_proc_write, bad argument\n");
+    }
+
+    return -EINVAL;
+}
+
+static DEVICE_ATTR(power_mode, 0666, power_control_show, power_control_store);
+
+static struct attribute *sysfs_attrs_ctrl[] = {
+	&dev_attr_power_mode.attr,
+	NULL,
+};
+static struct attribute_group power_attribute_group[] = {
+	{.attrs = sysfs_attrs_ctrl },
+};
+
+static int cpu_num_info_create_sysfs(void)
+{
+	int ret;
+	
+		ret = sysfs_create_group(power_kobj, power_attribute_group);
+		if (ret < 0) {
+			printk(KERN_ERR "[power]%s: sysfs_create_group failed\n", __func__);
+		}
+	
+	return 0;
+}
+
+#endif
+//gemingming@wind-mobi.com cpu use info 20150603 end
+
 /*============================================================================*/
 // Gobal function definition
 /*============================================================================*/
@@ -988,6 +1114,12 @@ int hps_procfs_init()
 
     hps_warn("hps_procfs_init\n");
 
+//gemingming@wind-mobi.com cpu use info 20150603 begin 
+#ifdef MEIZU_CPU_INFO
+	cpu_num_info_create_sysfs();
+#endif
+//gemingming@wind-mobi.com cpu use info 20150603 end
+
     hps_dir = proc_mkdir("hps", NULL);
     if (hps_dir == NULL)
     {
@@ -1007,3 +1139,13 @@ int hps_procfs_init()
 
     return r;
 }
+
+//gemingming@wind-mobi.com cpu use info 20150603 begin 
+int hps_procfs_deinit()
+{
+	//printk("power_mode remove\n");
+	sysfs_remove_group(power_kobj, power_attribute_group); 
+}
+//gemingming@wind-mobi.com cpu use info 20150603 end
+
+

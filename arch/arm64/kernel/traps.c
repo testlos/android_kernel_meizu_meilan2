@@ -394,16 +394,33 @@ die_sig:
 }
 
 long compat_arm_syscall(struct pt_regs *regs);
-
+/*dixiaobing@wind-mobi.com 20150625 start*/
+long compat_arm64_syscall(struct pt_regs *regs);
+/*dixiaobing@wind-mobi.com 20150625 end*/
 asmlinkage long do_ni_syscall(struct pt_regs *regs)
 {
 #ifdef CONFIG_COMPAT
 	long ret;
+/*dixiaobing@wind-mobi.com 20150625 start*/
+#ifdef CONFIG_MEIZU_SYSCALL
 	if (is_compat_task()) {
 		ret = compat_arm_syscall(regs);
 		if (ret != -ENOSYS)
 			return ret;
-	}
+	}else
+        {
+              ret = compat_arm64_syscall(regs);
+                if (ret != -ENOSYS)
+                        return ret;
+        }
+#else
+        if (is_compat_task()) {
+                ret = compat_arm_syscall(regs);
+                if (ret != -ENOSYS)
+                        return ret;
+        }
+#endif
+/*dixiaobing@wind-mobi.com 20150625 end*/
 #endif
 
 	if (show_unhandled_signals && printk_ratelimit()) {

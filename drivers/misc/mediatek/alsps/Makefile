@@ -48,6 +48,3 @@ endif
 ifeq ($(CONFIG_MTK_RPR410),y)
 obj-y	+=  rpr410/
 endif
-ifeq ($(CONFIG_MTK_AP3XX6),y)
-obj-y	+=  ap3xx6_mtk/
-endif

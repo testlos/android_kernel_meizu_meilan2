@@ -294,13 +294,6 @@ config CUSTOM_KERNEL_BAROMETER
 	help
 	  To detect barometer raw data
 
-#aratek fingerprint
-config CUSTOM_KERNEL_FINGERPRINT
-        bool "CUSTOM_KERNEL_FINGERPRINT"
-        help
-          Fingerprint sensor driver
-#aratek end
-
 config MTK_SENSOR_HUB_SUPPORT
 	bool "MTK_SENSOR_HUB_SUPPORT"
 	help
@@ -488,5 +481,7 @@ source "drivers/misc/mediatek/dbg_dump/Kconfig"
 source "drivers/misc/mediatek/connectivity/Kconfig"
 source "drivers/misc/mediatek/gps/Kconfig"
 source "drivers/misc/mediatek/multibridge/Kconfig"
-
+#dixiaobing@wind-mobi.com 20150710 start
+source "drivers/misc/mediatek/touchkey/Kconfig"
+#dixiaobing@wind-mobi.com 20150710 end
 endif

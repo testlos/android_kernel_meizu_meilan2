@@ -81,7 +81,7 @@ config MTK_LDVT_PMIC_WRAP
 
 endif
 
-# Accdet 
+# Accdet
 config MTK_ACCDET
 	bool "MediaTek Accessory Detection Support"
 	default n
@@ -157,10 +157,6 @@ config MTK_NET_CCMNI
 
 config MTK_C2K_DATA_PPP_SUPPORT
 	bool "MTK_C2K_DATA_PPP_SUPPORT"
-	default n
-
-config MTK_C2K_OM_SOLUTION1
-	bool "C2K OM solution1 support"
 	default n
 
 config MTK_IRAT_SUPPORT
@@ -786,11 +782,6 @@ config MTK_FAN5405_SUPPORT
 	help
 	  use external charger IC
 
-config MTK_ETA6005_SUPPORT
-	bool "MTK_ETA6005_SUPPORT"
-	help
-	  use external charger IC ETA6005
-
 config MTK_FAN5402_SUPPORT
 	bool "MTK_FAN5402_SUPPORT"
 	help
@@ -961,14 +952,7 @@ config MTK_RPR410
 config MTK_APDS9930_NEW
 	bool "APDS9930_NEW for MediaTek package"
 	default n
-config MTK_AP3XX6
-	bool "AP3XX6 for MediaTek package"
-	default n
 
-config MTK_AP3426
-	bool "ap3426 for MediaTek package"
-	default n
-	
 # Accelerometer sensor
 config MTK_KXTJ2_1009
 	bool "KXTJ2 1009 for MediaTek package"
@@ -996,11 +980,11 @@ config MTK_MC3410_NEW
 config MTK_MPU6050G_NEW
 	bool "MPU6050G for MediaTek package"
 	default n
-	
-config MTK_MC6470_ACC
-	bool "MC6470 ACC(ACC+MAG) sensor for MediaTek package"
+#dixiaobing@wind-mobi.com 20150710 start
+config MTK_LIS3DH_NEW
+	bool "LIS3DH for MediaTek package"
 	default n
-
+#dixiaobing@wind-mobi.com 20150710 end
 config MTK_MPU6050G
 	bool "MPU6050G for MediaTek package"
 	default n
@@ -1040,15 +1024,7 @@ config MTK_MXC400X_NEW
 config MTK_DA213
         bool "DA213 for MediaTek package"
         default n
-
-config MTK_GMA303
-        bool "GMA303 for MediaTek package"
-        default n
-
-config MTK_MC6470_ACC
-	bool "MC6470 ACC(ACC+MAG) sensor for MediaTek package"
-	default n
-	
+        
 # Gyro sensor
 config MTK_MPU3050C
 	bool "MPU3050C for MediaTek package"
@@ -1101,14 +1077,6 @@ config MTK_AKM09911
 config MTK_AKM09911_NEW
 	bool "AKM09911 for MediaTek package"
 	default n
-	
-config MTK_MC64XX
-	bool "MC64XX for MediaTek package"
-	default n
-	
-config MTK_MC6470
-	bool "MC64XX for MediaTek package"
-	default n
 
 config MTK_HSCDTD006
 	bool "HSCDTD006 for MediaTek package"
@@ -1131,7 +1099,19 @@ config MTK_BMM050
 config MTK_MMC3416X
 	bool "MTK_MMC3416X for MediaTek package"
 	default n
+#dixiaobing@wind-mobi.com 20150710 start
+config MTK_MMC3524X
+	bool "MTK_MMC3524X for MediaTek package"
+	default n
+	
+config MTK_QMCX983
+	bool "MTK_QMCX983 for MediaTek package"
+	default n
 
+config MTK_ist8303
+	bool "MTK_ist8303 for MediaTek package"
+	default n
+#dixiaobing@wind-mobi.com 20150710 end
 config MTK_BMA250
 	bool "MTK_BMA250 for MediaTek package"
 	default n
@@ -1172,39 +1152,11 @@ config MTK_IST8303
         
 config MTK_ST480
 	bool "ST480 for MediaTek package"
-	default n	
-
-config MTK_MMC3524X
-	bool "MTK_MMC3524X for MediaTek package"
-	default n
-
-config MTK_MC6470
-	bool "MC6470 MAG(ACC+MAG) sensor for MediaTek package"
-	default n
-
-config MTK_QMCX983
-	bool "QMCX983 MAG sensor for MediaTek package"
-	default n
-
-config MTK_AF7133E
-	bool "AF7133E for MediaTek package"
-	default n
+	default n	        
 # Barometer sensor
 config MTK_BMP180_NEW
 	bool "BMP180 for MediaTek package"
 	default n
-
-#aratek fingerprint
-config MTK_ARS3022
-        bool "ARS3022 for aratek fingerprint"
-        default n
-#aratek end
-
-#sileade fingerprint
-config MTK_SL6162
-        bool "SL6162 for sileade fingerprint"
-        default n
-#sileade end
 
 # Touch Panel
 config MTK_TOUCHPANEL
@@ -1790,6 +1742,24 @@ config MTK_LENS_BU6429AF_SUPPORT
 	bool "BU6429AF Lens Driver"
 	default n
 
+# oujiacheng@wind-mobi.com 2015.6.10 begin	
+config MTK_LENS_BU642911501AF_SUPPORT
+	bool "BU642911501AF Lens Driver"
+	default n
+	
+config MTK_LENS_BU642911502AF_SUPPORT
+	bool "BU642911502AF Lens Driver"
+	default n
+# oujiacheng@wind-mobi.com 2015.6.10 end	
+#dixiaobing@wind-mobi.com 20150710 start	
+config MTK_LENS_BU6429116109AF_SUPPORT
+	bool "BU6429116109AF Lens Driver"
+	default n
+	
+config MTK_LENS_BU6429116134AF_SUPPORT
+	bool "BU6429116134AF Lens Driver"
+	default n
+#dixiaobing@wind-mobi.com 20150710 end
 config MTK_LENS_BU64745GWZAF_SUPPORT
 	bool "BU64745GWZAF Lens Driver"
 	default n
@@ -1825,10 +1795,6 @@ config MTK_LENS_LC898212AF_SUPPORT
 config MTK_LENS_FM50AF_SUPPORT
 	bool "FM50AF Lens Driver"
 	default n
-	
-config MTK_LENS_DW9761AF_SUPPORT
-	bool "DW9761AF Lens Driver"
-	default n
 
 config MTK_LENS_MT9P017AF_SUPPORT
 	bool "MT9P017AF Lens Driver"
@@ -1853,6 +1819,34 @@ config MTK_LENS_GAF002AF_SUPPORT
 config MTK_LENS_GAF008AF_SUPPORT
 	bool "GAF008AF Lens Driver"
 	default n
+#dixiaobing@wind-mobi.com 20150710 start
+config MTK_TOUCHKEY_AW9201_SUPPORT
+	bool "AW9201 Touchkey Driver"
+	default n
+	
+#oujiacheng@wind-mobi.com 20150710 start
+config MTK_TOUCHKEY_AW9201_COMPATIBLE
+	bool "AW9201 Touchkey Compatible"
+	default n
+#oujiacheng@wind-mobi.com 20150710 end
+
+config MTK_TOUCHKEY_AW9136_SUPPORT
+	bool "AW9136 Touchkey Driver"
+	default n
+
+config MTK_CAM_CAL_S5K3L2OTP_SUPPORT
+	bool "S5K3L2 OTP Driver"
+	default n
+#dixiaobing@wind-mobi.com 20150710 end
+#dixiaobing@wind-mobi.com 20150526 start
+config SENSOR_NON_WAKE_UP
+       bool "sensor ps"
+       default n
+
+config LCD_BACKLIGHT
+       bool "lcd backlight"
+       default n
+#dixiaobing@wind-mobi.com 20150526 end
 
 #
 # MTK_EXTMEM for LCA project

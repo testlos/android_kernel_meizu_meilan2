@@ -577,6 +577,17 @@ void fan5405_hw_init(void)
 }
 #endif
 
+//gemingming@wind-mobi.com 20140917 add begin
+void fan5405_hw_init(void)
+{    
+	#if defined(HIGH_BATTERY_VOLTAGE_SUPPORT)
+		fan5405_reg_config_interface(0x06,0x77); // ISAFE = 1450mA, VSAFE = 4.34V
+	#else
+		fan5405_reg_config_interface(0x06,0x70);
+	#endif
+}
+//gemingming@wind-mobi.com 20140917 add end
+
 static int fan5405_driver_probe(struct i2c_client *client, const struct i2c_device_id *id) 
 {             
     int err=0; 
@@ -592,7 +603,8 @@ static int fan5405_driver_probe(struct i2c_client *client, const struct i2c_devi
     new_client = client;    
 
     //---------------------
-  //  fan5405_hw_init();
+    fan5405_hw_init();	//gemingming@wind-mobi.com 20140917 add 
+    battery_xlog_printk(BAT_LOG_CRTI,"[fan5405_driver_probe] end\n");//gemingming@wind-mobi.com 20140917 add 
     fan5405_dump_register();
     chargin_hw_init_done = KAL_TRUE;
 	

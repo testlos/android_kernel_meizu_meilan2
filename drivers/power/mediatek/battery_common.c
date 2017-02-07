@@ -207,7 +207,15 @@ static struct hrtimer battery_kthread_timer;
 static kal_bool g_battery_soc_ready = KAL_FALSE;
 extern BOOL bat_spm_timeout;
 extern U32 _g_bat_sleep_total_time;
-
+//zhounengwen@wind-mobi.com 20150326 begin
+#ifdef CONFIG_TOUCHSCREEN_MTK_FT5446
+extern int ctp_work_with_ac_usb_plugin(int plugin);
+extern int tpd_load_status;
+extern int ft5x06_init;
+static int ft5x06_flag = 1;
+static int ft5x06_flag_1 = 1;
+#endif
+//zhounengwen@wind-mobi.com 20150326 end
 /* ////////////////////////////////////////////////////////////////////////////// */
 /* FOR ADB CMD */
 /* ////////////////////////////////////////////////////////////////////////////// */
@@ -577,8 +585,18 @@ static int battery_get_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
-		val->intval = data->BAT_STATUS;
+	//xuecheng@wind-mobi.com add for bug#177898 full nofity allways 20150702
+	   if(BMT_status.UI_SOC == 100)
+		  {
+		   val->intval = POWER_SUPPLY_STATUS_FULL;
+		  }
+		  else
+		 { 		  
+			val->intval = data->BAT_STATUS;	
+		 }
+		 printk("xch val->intval=%d\n",val->intval);
 		break;
+	//xuecheng@wind-mobi.com add for bug#177898 full nofity allways 20150702
 	case POWER_SUPPLY_PROP_HEALTH:
 		val->intval = data->BAT_HEALTH;
 		break;
@@ -590,23 +608,9 @@ static int battery_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
 		val->intval = data->BAT_CAPACITY;
-		if(50 == data->BAT_CAPACITY){
-			dump_stack();
-			printk("battery_get_property():BMT_status.UI_SOC = %d\n",BMT_status.UI_SOC);
-			printk("battery_get_property():data->BAT_CAPACITY = %d\n",data->BAT_CAPACITY);
-			printk("battery_get_property():BMT_status.bat_vol = %d\n",BMT_status.bat_vol);
-			printk("battery_get_property():data->BAT_batt_vol = %d\n",data->BAT_batt_vol);
-			printk("battery_get_property():data->BAT_batt_temp = %d\n",data->BAT_batt_temp);
-		}
-		// val->intval = 99;·
 		break;
 	case POWER_SUPPLY_PROP_batt_vol:
 		val->intval = data->BAT_batt_vol;
-		if(0 == data->BAT_batt_vol){
-			dump_stack();
-			printk("battery_get_property():BMT_status.bat_vol = %d",BMT_status.bat_vol);
-			printk("battery_get_property():data->BAT_batt_vol = %d",data->BAT_batt_vol);			
-		}
 		break;
 	case POWER_SUPPLY_PROP_batt_temp:
 		val->intval = data->BAT_batt_temp;
@@ -1741,6 +1745,9 @@ static kal_bool mt_battery_0Percent_tracking_check(void)
 	return resetBatteryMeter;
 }
 
+//gemingming@wind-mobi.com 20150902
+kal_uint32 first_boot_ui;
+//gemingming@wind-mobi.com 20150902
 
 static void mt_battery_Sync_UI_Percentage_to_Real(void)
 {
@@ -1780,7 +1787,57 @@ static void mt_battery_Sync_UI_Percentage_to_Real(void)
 		timer_counter = 0;
 
 		#if !defined(CUST_CAPACITY_OCV2CV_TRANSFORM)
-		BMT_status.UI_SOC = BMT_status.SOC;
+        // xuecheng@wind-mobi.com modify for soc jump blew 10% 20150804 begin
+                                battery_xlog_printk(BAT_LOG_CRTI, "TEST BY mtk1,UI_SOC =%d,SOC=%d,first_boot_ui=%d\n", BMT_status.UI_SOC ,BMT_status.SOC,first_boot_ui);         
+                                if(BMT_status.charger_exist == KAL_TRUE)
+                                {
+	   					 if(BMT_status.SOC <= 99)
+                                              {
+                                                    BMT_status.UI_SOC = BMT_status.SOC;
+                                              }
+                                               
+                                            else if((BMT_status.SOC == 100) && (BMT_status.bat_full == KAL_TRUE))
+                                              {
+                                                   BMT_status.UI_SOC = BMT_status.SOC;
+                                              }
+						
+						else
+						   {
+							BMT_status.UI_SOC = 99;
+							
+							if(first_boot_ui == KAL_TRUE)
+							{
+								BMT_status.UI_SOC = BMT_status.SOC;
+								first_boot_ui = KAL_FALSE;
+							}
+						    }
+                                }
+                                else
+                                {
+                                	if(BMT_status.SOC==100)
+                                	{
+										battery_xlog_printk(BAT_LOG_CRTI, "TEST BY mtk BMT_status.bat_full=%d\n", BMT_status.bat_full); 
+										if(BMT_status.bat_full == KAL_TRUE)
+										{
+											BMT_status.UI_SOC = 100;
+										}										
+										
+										if(first_boot_ui == KAL_TRUE)
+										{
+											BMT_status.UI_SOC = BMT_status.SOC;
+											first_boot_ui = KAL_FALSE;
+										}
+									}
+									else
+									{
+                              		  BMT_status.UI_SOC = BMT_status.SOC;
+									}
+                                }
+ 
+                                battery_xlog_printk(BAT_LOG_CRTI, "TEST BY mtk2,UI_SOC =%d,SOC=%d,first_boot_ui=%d\n", BMT_status.UI_SOC ,BMT_status.SOC,first_boot_ui);
+           // xuecheng@wind-mobi.com modify for soc jump blew 10%  20150804 end   
+
+//end 
 		#else
 		if (BMT_status.UI_SOC == -1)
 			BMT_status.UI_SOC = BMT_status.SOC;
@@ -1805,6 +1862,7 @@ static void battery_update(struct battery_data *bat_data)
 {
 	struct power_supply *bat_psy = &bat_data->psy;
 	kal_bool resetBatteryMeter = KAL_FALSE;
+	kal_int32 g_rtc_fg_soc1 = 0;	//gemingming@wind-mobi.com 20150117
 
 	bat_data->BAT_TECHNOLOGY = POWER_SUPPLY_TECHNOLOGY_LION;
 	bat_data->BAT_HEALTH = POWER_SUPPLY_HEALTH_GOOD;
@@ -1845,8 +1903,6 @@ static void battery_update(struct battery_data *bat_data)
 					    BMT_status.UI_SOC, BMT_status.SOC);
 		} else {
 			mt_battery_Sync_UI_Percentage_to_Real();
-			if((BMT_status.UI_SOC == 50)||(BMT_status.SOC == 50))
-				battery_log(BAT_LOG_CRTI, "---------[%s:%d]-------\n",__FUNCTION__,__LINE__);
 		}
 	}
 
@@ -2254,11 +2310,7 @@ void mt_battery_GetBatteryData(void)
 
 	if (bat_meter_timeout == KAL_TRUE || bat_spm_timeout == TRUE || fg_wake_up_bat== KAL_TRUE) 
 	{
-		if((BMT_status.UI_SOC == 50)||(BMT_status.SOC == 50))
-			battery_log(BAT_LOG_CRTI, "---------[%s:%d]------- charger_vol = %d, temperature = %d,temperatureV = %d,temperatureR = %d,\n",__FUNCTION__,__LINE__,charger_vol, temperature,temperatureV,temperatureR);
 		SOC = battery_meter_get_battery_percentage();
-		if(SOC == 50)
-			battery_log(BAT_LOG_CRTI, "---------[%s:%d]------- charger_vol = %d, temperature = %d,temperatureV = %d,temperatureR = %d,bat_vol = %d,Vsense = %d\n",__FUNCTION__,__LINE__,charger_vol, temperature,temperatureV,temperatureR,bat_vol,Vsense);
 		//if (bat_spm_timeout == true)
 			//BMT_status.UI_SOC = battery_meter_get_battery_percentage();
 
@@ -2552,10 +2604,36 @@ static void mt_battery_notify_VBatTemp_check(void)
 #if defined(BATTERY_NOTIFY_CASE_0002_VBATTEMP)
 
 	if (BMT_status.temperature >= MAX_CHARGE_TEMPERATURE) {
-		g_BatteryNotifyCode |= 0x0002;
-		battery_log(BAT_LOG_CRTI, "[BATTERY] bat_temp(%d) out of range(too high)\n",
+		if(BMT_status.charger_exist == KAL_TRUE)
+		{
+		g_BatteryNotifyCode |= 0x0040;
+		battery_xlog_printk(BAT_LOG_CRTI, "[BATTERY] bat_temp(%d) out of range(too high)\n",
 				    BMT_status.temperature);
+		}
+		else
+		{
+			g_BatteryNotifyCode |= 0x0002;
+			battery_xlog_printk(BAT_LOG_CRTI, "[BATTERY] bat_temp(%d) out of range(too high)\n",
+				    BMT_status.temperature);
+		}
 	}
+	#ifdef BAT_LOW_TEMP_PROTECT_ENABLE
+	if (BMT_status.temperature < MIN_CHARGE_TEMPERATURE) {
+		if(BMT_status.charger_exist == KAL_TRUE)
+		{
+			g_BatteryNotifyCode |= 0x0020;
+			battery_xlog_printk(BAT_LOG_CRTI, "[BATTERY] bat_temp(%d) out of range(too low)\n",
+						BMT_status.temperature);
+		}
+		else
+		{
+			g_BatteryNotifyCode |= 0x0080;
+			battery_xlog_printk(BAT_LOG_CRTI, "[BATTERY] bat_temp(%d) out of range(too low)\n",
+						BMT_status.temperature);
+
+		}
+	}
+	#endif
 #if defined(CONFIG_MTK_JEITA_STANDARD_SUPPORT)
 	else if (BMT_status.temperature < TEMP_NEG_10_THRESHOLD) {
 		g_BatteryNotifyCode |= 0x0020;
@@ -2757,6 +2835,7 @@ CHARGER_TYPE mt_charger_type_detection(void)
 		 if(g_battery_soc_ready == KAL_FALSE) {
 			if(BMT_status.nPercent_ZCV == 0)
 				battery_meter_initial();
+					
 			BMT_status.SOC = battery_meter_get_battery_percentage();
 		}
 
@@ -2785,6 +2864,19 @@ CHARGER_TYPE mt_get_charger_type(void)
 static void mt_battery_charger_detect_check(void)
 {
 	if (upmu_is_chr_det() == KAL_TRUE) {
+      //zhounengwen@wind-mobi.com 20150326 begin
+      #ifdef CONFIG_TOUCHSCREEN_MTK_FT5446
+                if((tpd_load_status == 1)&&(ft5x06_init == 1))
+                {
+                    if(ft5x06_flag == 1)
+                    {
+                       ctp_work_with_ac_usb_plugin(1);
+                       ft5x06_flag = 0;
+                       ft5x06_flag_1 = 1;
+                    }
+                }
+	#endif
+       //zhounengwen@wind-mobi.com 20150326 end
 		wake_lock(&battery_suspend_lock);
 
 		#if !defined(CONFIG_MTK_DUAL_INPUT_CHARGER_SUPPORT)
@@ -2819,7 +2911,19 @@ static void mt_battery_charger_detect_check(void)
 
 	} else {
 		wake_unlock(&battery_suspend_lock);
-
+	//zhounengwen@wind-mobi.com 20150326 begin
+       #ifdef CONFIG_TOUCHSCREEN_MTK_FT5446
+                if((tpd_load_status == 1)&&(ft5x06_init == 1))
+                {   
+                    if(ft5x06_flag_1 == 1)
+                    {
+                        ctp_work_with_ac_usb_plugin(0);
+                        ft5x06_flag_1 = 0;
+                        ft5x06_flag = 1;
+                    }
+                }
+	#endif
+	//zhounengwen@wind-mobi.com 20150326 begin
 		BMT_status.charger_exist = KAL_FALSE;
 		BMT_status.charger_type = CHARGER_UNKNOWN;
 		BMT_status.bat_full = KAL_FALSE;
@@ -2871,17 +2975,9 @@ void update_battery_2nd_info(int status_smb, int capacity_smb, int present_smb)
 	g_smartbook_update = 1;
 #endif
 }
-kal_bool boot_flag = KAL_TRUE;
+
 void do_chrdet_int_task(void)
 {
-	//ALPS02229296++:when system boot,delay to get battery capacity until battery meter initial complete
-	if(KAL_TRUE == boot_flag)
-	{
-		battery_meter_initial();
-		mdelay(2);
-		boot_flag = KAL_FALSE;
-	}
-	//ALPS02229296--:when system boot,delay to get battery capacity until battery meter initial complete
 	if (g_bat_init_flag == KAL_TRUE) {
 		#if !defined(CONFIG_MTK_DUAL_INPUT_CHARGER_SUPPORT)
 		if (upmu_is_chr_det() == KAL_TRUE) {
@@ -2965,11 +3061,7 @@ void do_chrdet_int_task(void)
 
 			BMT_status.SOC = battery_meter_get_battery_percentage();
 		}
-		if(BMT_status.bat_vol == 0)
-		{//fake battery
-			dump_stack();
-			printk("do_chrdet_int_task(),fake battery\n");
-		}
+
 		if (BMT_status.bat_vol > 0) {
 			mt_battery_update_status();
 		}
@@ -3344,9 +3436,12 @@ void check_battery_exist(void)
 					    baton_count);
 
 			battery_charging_control(CHARGING_CMD_ENABLE, &charging_enable);
-			battery_charging_control(CHARGING_CMD_SET_POWER_OFF, NULL);
-		}
-	}
+			//gemingming@wind-mobi.com 20141008 beign
+			//Stop system form rebooting when the battery is not exit.
+            //battery_charging_control(CHARGING_CMD_SET_PLATFORM_RESET,NULL);
+			//gemingming@wind-mobi.com 20141008 end
+        }
+    }    
 #endif
 }
 
@@ -3447,7 +3542,9 @@ void hv_sw_mode(void)
 int charger_hv_detect_sw_thread_handler(void *unused)
 		{
 	ktime_t ktime;
-	kal_uint32 hv_voltage = V_CHARGER_MAX*1000;
+//gemingming@wind-mobi.com 20150526 modify for kernel hw over voltage  begin
+	kal_uint32 hv_voltage = BATTERY_VOLT_07_000000_V;
+//gemingming@wind-mobi.com 20150526 modify for kernel hw over voltage  end
 
 
 	kal_uint8 cnt=0;
@@ -3513,7 +3610,7 @@ int charger_hv_detect_sw_thread_handler(void *unused)
 {
 	ktime_t ktime;
 	kal_uint32 charging_enable;
-	kal_uint32 hv_voltage = V_CHARGER_MAX*1000;
+	kal_uint32 hv_voltage = BATTERY_VOLT_07_000000_V; //V_CHARGER_MAX*1000; gemingming@wind-mobi.com 20150121
 	kal_bool hv_status;
 
 	#if defined(CONFIG_MTK_DUAL_INPUT_CHARGER_SUPPORT)
@@ -4414,6 +4511,10 @@ static int __init battery_init(void)
 	int ret;
 
 	printk("battery_init\n");
+	
+//gemingming@wind-mobi.com 20150902
+	first_boot_ui = KAL_TRUE;
+//gemingming@wind-mobi.com 20150902
 
 #ifdef CONFIG_OF
 	//

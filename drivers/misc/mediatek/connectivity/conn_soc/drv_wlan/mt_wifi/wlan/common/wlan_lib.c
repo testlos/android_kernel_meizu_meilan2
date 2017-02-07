@@ -2136,6 +2136,8 @@ wlanProcessCommandQueue (
             //4 <4> Send the command
             rStatus = wlanSendCommand(prAdapter, prCmdInfo);
 
+			DBGLOG(INIT, INFO, ("send CMD Status:%u, Type:%d, CID:%d, Seq:%d\n",
+				rStatus, prCmdInfo->eCmdType, prCmdInfo->ucCID, prCmdInfo->ucCmdSeqNum));
             if(rStatus == WLAN_STATUS_RESOURCES) {
                 // no more TC4 resource for further transmission
                 QUEUE_INSERT_TAIL(prMergeCmdQue, prQueueEntry);

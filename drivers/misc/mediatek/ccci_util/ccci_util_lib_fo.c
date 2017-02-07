@@ -230,8 +230,12 @@ int set_modem_support_cap(int md_id, int new_val)
 	if(md_id < MAX_MD_NUM) {
         if(((get_boot_mode()==META_BOOT) || (get_boot_mode()==ADVMETA_BOOT)) && (meta_md_support[md_id]!=0))
             meta_md_support[md_id] = new_val;
+		//zhuyu@wind-mobi.com 20150627 begin
+		#ifndef DISPALY_MODEM_FOR_CHINAUNICOM	
         else
             md_support[md_id] = new_val;
+		#endif
+		//zhuyu@wind-mobi.com 20150627 end
         return 0;
 	}
 	return -1;

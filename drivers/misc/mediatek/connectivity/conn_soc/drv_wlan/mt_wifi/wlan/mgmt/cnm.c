@@ -783,6 +783,11 @@ cnmBss40mBwPermitted (
 {
     P_BSS_INFO_T    prBssInfo;
     UINT_8          i;
+    P_BSS_DESC_T	prBssDesc = prAdapter->rWifiVar.rAisFsmInfo.prTargetBssDesc;
+
+    if (prBssDesc && (prBssDesc->eBand == BAND_2G4) &&
+		(prBssDesc->fgBwWorkaround == TRUE))
+        return FALSE; /* force to 20M whatever AP's capability in 2.4GHz for AIS interface */
 
     /* Note: To support real-time decision instead of current activated-time,
      *       the STA roaming case shall be considered about synchronization

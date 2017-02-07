@@ -1834,6 +1834,7 @@ scanAddToBssDesc (
 #if CFG_PRIVACY_MIGRATION
     prBssDesc->fgIEWPA = FALSE;
 #endif
+	prBssDesc->fgBwWorkaround = FALSE;
 
 
     //4 <3.1> Full IE parsing on SW_RFB_T
@@ -2003,6 +2004,19 @@ scanAddToBssDesc (
                     }
                 }
 #endif /* CFG_ENABLE_WIFI_DIRECT */
+			{
+				P_IE_WFA_T prWfaIE = (P_IE_WFA_T) pucIE;
+				if (prWfaIE->ucLength == 0x07)
+				{
+					if ((prWfaIE->aucOui[0] == 0x00) &&
+						(prWfaIE->aucOui[1] == 0x0c) &&
+						(prWfaIE->aucOui[2] == 0x43))
+					{
+						prBssDesc->fgBwWorkaround = TRUE;
+					}
+				}
+			}
+
             }
             break;
 

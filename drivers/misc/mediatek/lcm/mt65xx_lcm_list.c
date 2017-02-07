@@ -192,7 +192,8 @@ extern LCM_DRIVER nt35517_qhd_dsi_vdo_lcm_drv;
 extern LCM_DRIVER otm1283a_hd720_dsi_vdo_tm_lcm_drv;
 extern LCM_DRIVER otm1284a_hd720_dsi_vdo_tm_lcm_drv;
 extern LCM_DRIVER otm1285a_hd720_dsi_vdo_tm_lcm_drv;
-extern LCM_DRIVER otm1285a_hd720_dsi_vdo_by_lcm_drv;
+extern LCM_DRIVER otm1285a_hd720_dsi_vdo_ys_lcm_drv;
+extern LCM_DRIVER otm1285a_hd720_dsi_vdo_by_lcm_drv; //modify by wenggaojian@wind-mobi.com
 extern LCM_DRIVER hx8389b_qhd_dsi_vdo_lgd_lcm_drv;
 extern LCM_DRIVER it6151_fhd_edp_dsi_video_auo_lcm_drv;
 extern LCM_DRIVER tf070mc_rgb_v18_mt6571_lcm_drv;
@@ -237,39 +238,31 @@ extern LCM_DRIVER it6151_lp079qx1_edp_dsi_video_8163evb_lcm_drv;
 extern LCM_DRIVER nt35510_dsi_cmd_lcm_drv;
 extern LCM_DRIVER rm69032_dsi_cmd_lcm_drv;
 extern LCM_DRIVER st7789h2_dbi_lcm_drv;
-extern LCM_DRIVER ili9881_hd720_dsi_vdo_lcm_drv;
-extern LCM_DRIVER ili9881_hd720_dsi_vdo_k503_lcm_drv;
-extern LCM_DRIVER ili9881_hd720_dsi_vdo_k551_lcm_drv;
-extern LCM_DRIVER r61318a1_hd720_dsi_vdo_k503_lcm_drv;
-extern LCM_DRIVER nt35596_fhd_dsi_vdo_drv;
-extern LCM_DRIVER nt35596_fhd_dsi_vdo_k505_drv;
-extern LCM_DRIVER otm1901_fhd_dsi_vdo_lcm_drv;
-extern LCM_DRIVER otm1901_lide_fhd_dsi_vdo_lcm_drv;
-extern LCM_DRIVER fl10802_dsi_vdo_fwvga_drv;
-extern LCM_DRIVER fl10802_liangbang_dsi_vdo_fwvga_drv;
-extern LCM_DRIVER jd9367_hd720_dsi_vdo_lcm_drv;
-extern LCM_DRIVER fl11280_hd720_dsi_vdo_lcm_drv;
-extern LCM_DRIVER hx8399_fhd_dsi_vdo_lcm_drv;
-#if defined(OTM9605A_HONGZHAN_QHD_VDO)
-    extern LCM_DRIVER otm9605a_hongzhan_qhd_vdo_lcm_drv;
-#endif
-#if defined(NT35517_DELITAI_QHD_VDO)
-    extern LCM_DRIVER nt35517_delitai_qhd_vdo_lcm_drv;
-#endif
-extern LCM_DRIVER hx8394f_hd720_dsi_vdo_lcm_drv;
+extern LCM_DRIVER ili7802_hd720_dsi_vdo_yassy_lcm_drv;
+extern LCM_DRIVER ili9881_CA_hd720_dsi_vdo_yassy_lcm_drv;
 
 LCM_DRIVER* lcm_driver_list[] =
 {
+#if defined(ILI9881_CA_HD720_DSI_VDO_YASSY)
+	&ili9881_CA_hd720_dsi_vdo_yassy_lcm_drv,
+#endif
+#if defined(ILI7802_HD720_DSI_VDO_YASSY)
+	&ili7802_hd720_dsi_vdo_yassy_lcm_drv,
+#endif
 #if defined(OTM1284A_HD720_DSI_VDO_TM)
 	&otm1284a_hd720_dsi_vdo_tm_lcm_drv,
 #endif
 #if defined(OTM1285A_HD720_DSI_VDO_TM)
 	&otm1285a_hd720_dsi_vdo_tm_lcm_drv,
 #endif
-#if defined(OTM1285A_HD720_DSI_VDO_BY)
-        &otm1285a_hd720_dsi_vdo_by_lcm_drv,
+#if defined(OTM1285A_HD720_DSI_VDO_YS) 
+	&otm1285a_hd720_dsi_vdo_ys_lcm_drv,
 #endif
-
+/* wenggaojian@wind-mobi.com begin */
+#if defined(OTM1285A_HD720_DSI_VDO_BY) 
+	&otm1285a_hd720_dsi_vdo_by_lcm_drv,
+#endif
+/* wenggaojian@wind-mobi.com end */
 #if defined(S6E3FA2_FHD1080_DSI_VDO)
 	&s6e3fa2_fhd1080_dsi_vdo_lcm_drv,
 #endif
@@ -1109,60 +1102,6 @@ LCM_DRIVER* lcm_driver_list[] =
 #if defined(ST7789H2_DBI)
 	&st7789h2_dbi_lcm_drv,
 #endif
-#if defined(ILI9881_HD720_DSI_VDO)
-        &ili9881_hd720_dsi_vdo_lcm_drv,
-#endif
-
-#if defined(ILI9881_HD720_DSI_VDO_K503)
-        &ili9881_hd720_dsi_vdo_k503_lcm_drv,
-#endif
-
-#if defined(ILI9881_HD720_DSI_VDO_K551)
-        &ili9881_hd720_dsi_vdo_k551_lcm_drv,
-#endif
-
-#if defined(R61318A1_HD720_DSI_VDO_K503)
-        &r61318a1_hd720_dsi_vdo_k503_lcm_drv,
-#endif
-
-#if defined(NT35596_FHD_DSI_VDO)
-        &nt35596_fhd_dsi_vdo_drv,
-#endif
-#if defined(NT35596_FHD_DSI_VDO_K505)
-        &nt35596_fhd_dsi_vdo_k505_drv,
-#endif
-
-#if defined(OTM1901_FHD_DSI_VDO)
-        &otm1901_fhd_dsi_vdo_lcm_drv,
-#endif
-#if defined(OTM1901_LIDE_FHD_DSI_VDO)
-        &otm1901_lide_fhd_dsi_vdo_lcm_drv,
-#endif
-#if defined(FL10802_DSI_VDO_FWVGA)
-        &fl10802_dsi_vdo_fwvga_drv,
-#endif
-#if defined(FL10802_LIANGBANG_DSI_VDO_FWVGA)
-        &fl10802_liangbang_dsi_vdo_fwvga_drv,
-#endif
-#if defined(JD9367_HD720_DSI_VDO)
-	&jd9367_hd720_dsi_vdo_lcm_drv,
-#endif
-#if defined(FL11280_HD720_DSI_VDO)
-        &fl11280_hd720_dsi_vdo_lcm_drv,
-#endif
-#if defined(HX8399_FHD_DSI_VDO)
-        &hx8399_fhd_dsi_vdo_lcm_drv,
-#endif
-#if defined(OTM9605A_HONGZHAN_QHD_VDO)
-    &otm9605a_hongzhan_qhd_vdo_lcm_drv,
-#endif
-
-#if defined(NT35517_DELITAI_QHD_VDO)
-    &nt35517_delitai_qhd_vdo_lcm_drv,
-#endif
-#if defined(HX8394F_HD720_DSI_VDO)
-    &hx8394f_hd720_dsi_vdo_lcm_drv,
-#endif
 };
 
 #define LCM_COMPILE_ASSERT(condition) LCM_COMPILE_ASSERT_X(condition, __LINE__)
@@ -1171,7 +1110,7 @@ LCM_DRIVER* lcm_driver_list[] =
 
 unsigned int lcm_count = sizeof(lcm_driver_list)/sizeof(LCM_DRIVER*);
 LCM_COMPILE_ASSERT(0 != sizeof(lcm_driver_list)/sizeof(LCM_DRIVER*));
-#if defined(NT35520_HD720_DSI_CMD_TM) | defined(NT35520_HD720_DSI_CMD_BOE) | defined(NT35521_HD720_DSI_VDO_BOE) | defined(NT35521_HD720_DSI_VIDEO_TM)
+#if defined(NT35520_HD720_DSI_CMD_TM) | defined(NT35520_HD720_DSI_CMD_BOE) | defined(NT35521_HD720_DSI_VDO_BOE) | defined(NT35521_HD720_DSI_VIDEO_TM) || defined(OTM1285A_HD720_DSI_VDO_TM) || defined(OTM1285A_HD720_DSI_VDO_YS) || defined(OTM1285A_HD720_DSI_VDO_BY) //modify by wenggaojian@wind-mobi.com
 #ifdef BUILD_LK
 extern void mdelay(unsigned long msec);
 #endif

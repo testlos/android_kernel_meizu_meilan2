@@ -53,7 +53,11 @@
 #define SENSOR_TYPE_ACTIVITY            28
 #define SENSOR_TYPE_FACE_DOWN           29
 #define SENSOR_TYPE_SHAKE               30
-
+/*dixiaobing@wind-mobi.com 20150525 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+#define SENSOR_TYPE_PROXIMITYNON           31
+#endif
+/*dixiaobing@wind-mobi.com 20150525 end*/
 /*---------------------------------------------------------------------------*/
 #define ID_BASE							0
 #define ID_ORIENTATION					(ID_BASE+SENSOR_TYPE_ORIENTATION-1)
@@ -81,9 +85,16 @@
 #define ID_IN_POCKET                                     (ID_BASE+SENSOR_TYPE_IN_POCKET-1)
 #define ID_FACE_DOWN                                    (ID_BASE+SENSOR_TYPE_FACE_DOWN-1)
 #define ID_SHAKE                                        (ID_BASE+SENSOR_TYPE_SHAKE-1)
+/*dixiaobing@wind-mobi.com 20150525 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+#define ID_PROXIMITYNON                                    (ID_BASE+SENSOR_TYPE_PROXIMITYNON-1)
+#define ID_SENSOR_MAX_HANDLE	  (ID_BASE+31)
+#define ID_NONE							    (ID_BASE+32)	
+#else
 #define ID_SENSOR_MAX_HANDLE	  (ID_BASE+30)
 #define ID_NONE							    (ID_BASE+31)
-
+#endif
+/*dixiaobing@wind-mobi.com 20150525 end*/
 #define ID_OFFSET                           (1)
 
 //#define MAX_ANDROID_SENSOR_NUM	(ID_SENSOR_MAX_HANDLE + 1)
@@ -140,6 +151,13 @@
 #define ALSPS_PL_DEV_NAME                	"m_alsps_pl"
 #define ALSPS_INPUTDEV_NAME              "m_alsps_input"
 #define ALSPS_MISC_DEV_NAME              "m_alsps_misc"
+
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#define ALSALS_ALS_DEV_NAME                	"m_alsals_pl"
+#define ALSALS_INPUTDEV_NAME              "m_alsals_input"
+#define ALSALS_MISC_DEV_NAME              "m_alsals_misc"
+/*dixiaobing@wind-mobi.com 20150629 end*/
+
 #define BARO_PL_DEV_NAME                	"m_baro_pl"
 #define BARO_INPUTDEV_NAME              "m_baro_input"
 #define BARO_MISC_DEV_NAME              "m_baro_misc"

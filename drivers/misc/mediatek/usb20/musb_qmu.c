@@ -171,34 +171,45 @@ void musb_tx_zlp_qmu(struct musb *musb, u32 ep_num)
 	void __iomem		*mbase =  musb->mregs;
 	unsigned long timeout = jiffies + HZ;
 	int is_timeout = 1;
+	int cnt = 0;
 	u16			csr;
 
 	QMU_WARN("TX ZLP direct sent\n");
 	musb_ep_select(mbase, ep_num);
+	QMU_WARN("check1\n");
 
 	/* disable dma for pio */
 	csr = musb_readw(epio, MUSB_TXCSR);
+	QMU_WARN("check2\n");
 	csr &= ~MUSB_TXCSR_DMAENAB;
 	musb_writew(epio, MUSB_TXCSR, csr);
+	QMU_WARN("check3\n");
 
 	/* TXPKTRDY */
 	csr = musb_readw(epio, MUSB_TXCSR);
+	QMU_WARN("check4\n");
 	csr |= MUSB_TXCSR_TXPKTRDY;
 	musb_writew(epio, MUSB_TXCSR, csr);
+	QMU_WARN("check5, cnt:%d\n", cnt);
 
 	/* wait ZLP sent */
-	while(time_before_eq(jiffies, timeout)){
+	while(cnt++ < 15){
 		csr = musb_readw(epio, MUSB_TXCSR);
+		QMU_WARN("check6, cnt:%d\n", cnt);
 		if(!(csr & MUSB_TXCSR_TXPKTRDY)){
+			QMU_WARN("check7, cnt:%d\n", cnt);
 			is_timeout = 0;
 			break;
 		}
+		udelay(200);
 	}
 
 	/* re-enable dma for qmu */
 	csr = musb_readw(epio, MUSB_TXCSR);
+	QMU_WARN("check8\n");
 	csr |= MUSB_TXCSR_DMAENAB;
 	musb_writew(epio, MUSB_TXCSR, csr);
+	QMU_WARN("check9\n");
 
 	if(is_timeout){
 		QMU_ERR("TX ZLP sent fail???\n");

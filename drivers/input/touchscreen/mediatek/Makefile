@@ -18,7 +18,11 @@ endif
 ifeq ($(CONFIG_TOUCHSCREEN_MTK_MAX1187X),y)
 obj-y	+=  max1187x/
 endif
-
+#dixiaobing@wind-mobi.com 20150710 start
+ifeq ($(CONFIG_TOUCHSCREEN_MTK_FT5446),y)
+obj-y	+=  ft5446/
+endif
+#dixiaobing@wind-mobi.com 20150710 end
 ifeq ($(CONFIG_TOUCHSCREEN_MTK_GT9XX),y)
 obj-y	+=  GT9XX/
 endif
@@ -105,10 +109,6 @@ ifeq ($(CONFIG_TOUCHSCREEN_SYNAPTICS_S3528),y)
 obj-y   +=  synaptics_3528/
 endif
 
-ifeq ($(CONFIG_TOUCHSCREEN_SYNAPTICS_S2714),y)
-obj-y   +=  synaptics_s2714/
-endif
-
 ifeq ($(CONFIG_TOUCHSCREEN_SYNAPTICS),y)
 obj-y   +=  synaptics/
 endif
@@ -143,12 +143,4 @@ endif
 
 ifeq ($(CONFIG_MTK_GT911),y)
 obj-y	+=  GT911/
-endif
-
-ifeq ($(CONFIG_MTK_FT6x36),y)
-obj-y	+=  ft6x36/
-endif
-
-ifeq ($(CONFIG_MTK_MSG2238),y)
-obj-y	+=  msg2238/
 endif

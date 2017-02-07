@@ -17,15 +17,16 @@ GZFLAGS		:=-9
 
 LIBGCC 		:= $(shell $(CC) $(KBUILD_CFLAGS) -print-libgcc-file-name)
 
+#zhuyu@wind-mobi.com 20150627 begin
+ifeq ($(strip $(CHINAUNICOM_CUSTOMIZE)), true)
+cflags-$(CONFIG_ARCH_MT6735) += -DISPALY_MODEM_FOR_CHINAUNICOM
+endif
+#zhuyu@wind-mobi.com 20150627 end
+
 KBUILD_DEFCONFIG := defconfig
 
 KBUILD_CFLAGS	+= -mgeneral-regs-only
-KBUILD_CFLAGS	+= -fno-pic -mtune=cortex-a53 -march=armv8-a -O3 -ffast-math \
-		  -fsingle-precision-constant -fgraphite-identity \
-		  -ftree-loop-distribution -ftree-loop-linear \
-		  -floop-interchange -floop-strip-mine -floop-block \
-		  -fmodulo-sched -fmodulo-sched-allow-regmoves \
-		  -fno-inline-functions
+KBUILD_CFLAGS	+= -fno-pic
 KBUILD_CPPFLAGS	+= -mlittle-endian
 AS		+= -EL
 LD		+= -EL

@@ -3448,11 +3448,11 @@ int _esd_check_config_handle_vdo(void)
 {
 	int ret = 0; // 0:success , 1:fail
 	primary_display_esd_cust_bycmdq(1);
-
-#if defined(MTK_FB_SODI_SUPPORT) || !defined(CONFIG_FPGA_EARLY_PORTING)
-	spm_enable_sodi(0);
-#endif
-
+// xuecheng add for shanping 20150522 begin
+#if defined(MTK_FB_SODI_SUPPORT) || !defined(CONFIG_FPGA_EARLY_PORTING) 
+spm_enable_sodi(0); 
+#endif 
+// xuecheng add for shanping 20150522 end
 	// 1.reset
 	cmdqRecReset(pgc->cmdq_handle_config_esd);
 
@@ -3471,11 +3471,11 @@ int _esd_check_config_handle_vdo(void)
 
 	// 3.write instruction(read from lcm)
 	dpmgr_path_build_cmdq(pgc->dpmgr_handle, pgc->cmdq_handle_config_esd,CMDQ_ESD_CHECK_READ);
-	
-	/* pull DSI clock lane */
-	DSI_sw_clk_trail_cmdq(0, pgc->cmdq_handle_config_esd);
-	DSI_manual_enter_HS(pgc->cmdq_handle_config_esd);
-
+/* pull DSI clock lane */ 
+// xuecheng add for shanping 20150522 begin
+DSI_sw_clk_trail_cmdq(0, pgc->cmdq_handle_config_esd); 
+DSI_manual_enter_HS(pgc->cmdq_handle_config_esd); 
+// xuecheng add for shanping 20150522 end
 	// 4.start dsi vdo mode
 	dpmgr_path_build_cmdq(pgc->dpmgr_handle, pgc->cmdq_handle_config_esd,CMDQ_START_VDO_MODE);
 
@@ -3500,11 +3500,11 @@ int _esd_check_config_handle_vdo(void)
 
 	_primary_path_unlock(__func__);
 	ret = cmdqRecFlush(pgc->cmdq_handle_config_esd);
-
-#if defined(MTK_FB_SODI_SUPPORT) || !defined(CONFIG_FPGA_EARLY_PORTING)
-	spm_enable_sodi(1);
-#endif
-
+// xuecheng add for shanping 20150522 begin
+#if defined(MTK_FB_SODI_SUPPORT) || !defined(CONFIG_FPGA_EARLY_PORTING) 
+spm_enable_sodi(1); 
+#endif 
+// xuecheng add for shanping 20150522 end
 #ifdef DISP_DUMP_EVENT_STATUS
     {
         unsigned int i=0;
@@ -3910,7 +3910,7 @@ static int primary_display_esd_check_worker_kthread(void *data)
 		    count++;
 			msleep(3000);
 		}
-        msleep(2000); // esd check/pull clock lane every 2s
+        msleep(2000); // esd check every 2s
 		ret = wait_event_interruptible(esd_check_task_wq,atomic_read(&esd_check_task_wakeup));
         if(ret < 0)
         {
@@ -8050,8 +8050,6 @@ int primary_display_capture_framebuffer_decouple(unsigned long pbuf, unsigned in
     	goto out;
 	}
 
-	_primary_path_lock(__func__);
-
 //	mva = pgc->dc_buf[pgc->dc_buf_id];
 	pconfig = dpmgr_path_get_last_config(pgc->dpmgr_handle);
 
@@ -8072,7 +8070,6 @@ int primary_display_capture_framebuffer_decouple(unsigned long pbuf, unsigned in
 	buffer_size = h_yres*pitch;
 	ASSERT((pitch/4)>=w_xres);
 //	dpmgr_get_input_address(pgc->dpmgr_handle,&mva);
-	_primary_path_unlock(__func__);
 	m4u_mva_map_kernel(mva, buffer_size, &va, &mapped_size);
 	if(!va)
 	{
@@ -8129,11 +8126,18 @@ int primary_display_capture_framebuffer_ovl(unsigned long pbuf, unsigned int for
 	DISPMSG("primary capture: begin\n");
 
     disp_sw_mutex_lock(&(pgc->capture_lock));
+    _primary_path_lock(__func__);
 
-    if (primary_display_is_sleepd()|| !primary_display_cmdq_enabled())
+    if (pgc->state == DISP_SLEEPED)
     {
         memset((void*)pbuf, 0,buffer_size);
-		DISPMSG("primary capture:fill black\n");
+		DISPMSG("primary capture:fill black for sleep \n");
+        goto out;
+    }
+    if (!primary_display_cmdq_enabled())
+    {
+        memset((void*)pbuf, 0,buffer_size);
+		DISPMSG("primary capture:fill black for cmdq disabled \n");
         goto out;
     }
 
@@ -8195,7 +8199,6 @@ int primary_display_capture_framebuffer_ovl(unsigned long pbuf, unsigned int for
 		_cmdq_insert_wait_frame_done_token_mira(cmdq_handle);
 		dpmgr_path_memout_clock(pgc->dpmgr_handle, 1);
 
-		_primary_path_lock(__func__);
 		pconfig = dpmgr_path_get_last_config(pgc->dpmgr_handle);
 		pconfig->wdma_dirty 					= 1;
 		pconfig->wdma_config.dstAddress 		= mva;
@@ -8226,7 +8229,6 @@ int primary_display_capture_framebuffer_ovl(unsigned long pbuf, unsigned int for
 
 		ret = dpmgr_path_config(pgc->dpmgr_handle, pconfig, cmdq_handle);
 		pconfig->wdma_dirty  = 0;
-		_primary_path_unlock(__func__);
 		_cmdq_set_config_handle_dirty_mira(cmdq_handle);
 		_cmdq_flush_config_handle_mira(cmdq_handle, 0);
 		DISPMSG("primary capture:Flush add memout mva(0x%x)\n",mva);
@@ -8239,10 +8241,8 @@ int primary_display_capture_framebuffer_ovl(unsigned long pbuf, unsigned int for
 
 		cmdqRecReset(cmdq_handle);
 		_cmdq_insert_wait_frame_done_token_mira(cmdq_handle);
-		_primary_path_lock(__func__);
 		dpmgr_path_remove_memout(pgc->dpmgr_handle, cmdq_handle);
         cmdqRecClearEventToken(cmdq_handle,CMDQ_EVENT_DISP_WDMA0_SOF);
-		_primary_path_unlock(__func__);
 		_cmdq_set_config_handle_dirty_mira(cmdq_handle);
 		//flush remove memory to cmdq
 		_cmdq_flush_config_handle_mira(cmdq_handle, 1);
@@ -8261,6 +8261,7 @@ out:
     if(m4uClient != 0)
 	    m4u_destroy_client(m4uClient);
 
+	_primary_path_unlock(__func__);
 	disp_sw_mutex_unlock(&(pgc->capture_lock));
 	DISPMSG("primary capture: end\n");
 

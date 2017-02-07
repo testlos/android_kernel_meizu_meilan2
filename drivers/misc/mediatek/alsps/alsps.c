@@ -8,12 +8,34 @@ static struct alsps_init_info* alsps_init_list[MAX_CHOOSE_ALSPS_NUM]= {0}; //mod
 static void alsps_early_suspend(struct early_suspend *h);
 static void alsps_late_resume(struct early_suspend *h);
 
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+struct alsals_context *alsals_context_obj = NULL;
+static void alsals_early_suspend(struct early_suspend *h);
+static void alsals_late_resume(struct early_suspend *h);
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
+char *alsps_name  = NULL;   //add yudengwu 2015-01-30
+/*dixiaobing@wind-mobi.com 20150525 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+int non_wakeup_ps = 0;
+#endif
+/*dixiaobing@wind-mobi.com 20150525 end*/
 
+int als_enable_flag = 0;
 int als_data_report(struct input_dev *dev, int value, int status)
 {
-	struct alsps_context *cxt = NULL;
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+	struct alsals_context *cxt = NULL;
+    
+	cxt  = alsals_context_obj;
+#else
+    struct alsps_context *cxt = NULL;
     
 	cxt  = alsps_context_obj;
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 	//ALSPS_LOG("+als_data_report! %d, %d\n",value,status);
 	//force trigger data update after sensor enable.
 	if (cxt->is_get_valid_als_data_after_enable == false)
@@ -38,17 +60,26 @@ int ps_data_report(struct input_dev *dev, int value,int status)
 
 static void als_work_func(struct work_struct *work)
 {
-
-	struct alsps_context *cxt = NULL;
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+	struct alsals_context *cxt = NULL;
+#else
+    struct alsps_context *cxt = NULL;
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 	//int out_size;
 	//hwm_sensor_data sensor_data;
 	int value,status;
 	int64_t  nt;
 	struct timespec time; 
 	int err;	
-
-	cxt  = alsps_context_obj;
-	
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+	cxt  = alsals_context_obj;
+#else
+    cxt  = alsps_context_obj;
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/	
 	if(NULL == cxt->als_data.get_data)
 	{
         ALSPS_ERR("alsps driver not register data path\n");
@@ -111,6 +142,11 @@ static void ps_work_func(struct work_struct *work)
 {
 
 	struct alsps_context *cxt = NULL;
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+	struct alsals_context *cxtals = NULL;
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 	//int out_size;
 	//hwm_sensor_data sensor_data;
 	int value,status;
@@ -119,7 +155,11 @@ static void ps_work_func(struct work_struct *work)
 	int err = 0;	
 
 	cxt  = alsps_context_obj;
-	
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+	cxtals  = alsals_context_obj;
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 	if(NULL == cxt->ps_data.get_data)
 	{
         ALSPS_ERR("alsps driver not register data path\n");
@@ -163,8 +203,15 @@ static void ps_work_func(struct work_struct *work)
 
     if (cxt->is_get_valid_ps_data_after_enable == false)
     {
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+        if(ALSPS_INVALID_VALUE != cxtals->drv_data.als_data.values[0])
+            cxt->is_get_valid_ps_data_after_enable = true;
+#else
         if(ALSPS_INVALID_VALUE != cxt->drv_data.als_data.values[0])
             cxt->is_get_valid_ps_data_after_enable = true;
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
     }
     
 	//report data to input device
@@ -188,7 +235,13 @@ static void ps_work_func(struct work_struct *work)
 
 static void als_poll(unsigned long data)
 {
-	struct alsps_context *obj = (struct alsps_context *)data;
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+	struct alsals_context *obj = (struct alsals_context *)data;
+#else
+    struct alsps_context *obj = (struct alsps_context *)data;
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
     if((obj != NULL) && (obj->is_als_polling_run))
 	{
 		schedule_work(&obj->report_als);
@@ -204,7 +257,63 @@ static void ps_poll(unsigned long data)
 		schedule_work(&obj->report_ps);
 	}
 }
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+static struct alsps_context *alsps_context_alloc_object(void)
+{
+	
+	struct alsps_context *obj = kzalloc(sizeof(*obj), GFP_KERNEL); 
+    	ALSPS_LOG("alsps_context_alloc_object++++\n");
+	if(!obj)
+	{
+		ALSPS_ERR("Alloc alsps object error!\n");
+		return NULL;
+	}	
+	atomic_set(&obj->delay_ps, 200); /*5Hz*/// set work queue delay time 200ms
+	atomic_set(&obj->wake, 0);
+	INIT_WORK(&obj->report_ps, ps_work_func);
+	init_timer(&obj->timer_ps);
+	
+	obj->timer_ps.expires	= jiffies + atomic_read(&obj->delay_ps)/(1000/HZ);
+	obj->timer_ps.function	= ps_poll;
+	obj->timer_ps.data	= (unsigned long)obj;
 
+	obj->is_ps_first_data_after_enable = false;
+	obj->is_ps_polling_run = false;
+	mutex_init(&obj->alsps_op_mutex);
+	obj->is_ps_batch_enable = false;//for batch mode init
+
+	ALSPS_LOG("alsps_context_alloc_object----\n");
+	return obj;
+}
+
+static struct alsps_context *alsals_context_alloc_object(void)
+{
+	
+	struct alsals_context *obj = kzalloc(sizeof(*obj), GFP_KERNEL); 
+    	ALSPS_LOG("alsps_context_alloc_object++++\n");
+	if(!obj)
+	{
+		ALSPS_ERR("Alloc alsps object error!\n");
+		return NULL;
+	}	
+	atomic_set(&obj->delay_als, 200); /*5Hz*/// set work queue delay time 200ms
+	atomic_set(&obj->wake, 0);
+	INIT_WORK(&obj->report_als, als_work_func);
+	init_timer(&obj->timer_als);
+	obj->timer_als.expires	= jiffies + atomic_read(&obj->delay_als)/(1000/HZ);
+	obj->timer_als.function	= als_poll;
+	obj->timer_als.data	= (unsigned long)obj;
+	
+	obj->is_als_first_data_after_enable = false;
+	obj->is_als_polling_run = false;
+	
+	mutex_init(&obj->alsps_op_mutex);
+	obj->is_als_batch_enable = false;//for batch mode init
+	ALSPS_LOG("alsps_context_alloc_object----\n");
+	return obj;
+}
+#else
 static struct alsps_context *alsps_context_alloc_object(void)
 {
 	
@@ -241,15 +350,25 @@ static struct alsps_context *alsps_context_alloc_object(void)
 	ALSPS_LOG("alsps_context_alloc_object----\n");
 	return obj;
 }
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 
 static int als_real_enable(int enable)
 {
   int err =0;
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+  struct alsals_context *cxt = NULL;
+  cxt = alsals_context_obj;
+#else
   struct alsps_context *cxt = NULL;
   cxt = alsps_context_obj;
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
   if(1==enable)
   {
      
+     als_enable_flag = 1;  /*dixiaobing@wind-mobi.com 20150715*/
      if(true==cxt->is_als_active_data || true ==cxt->is_als_active_nodata)
      {
         err = cxt->als_ctl.enable_nodata(1);
@@ -269,6 +388,7 @@ static int als_real_enable(int enable)
   }
   if(0 == enable)
   {
+     als_enable_flag = 0;   /*dixiaobing@wind-mobi.com 20150715*/
      if(false==cxt->is_als_active_data && false ==cxt->is_als_active_nodata)
      {
      	ALSPS_LOG("AAL status is %d\n", aal_use);
@@ -288,9 +408,18 @@ static int als_real_enable(int enable)
 }
 static int als_enable_data(int enable)
 {
+
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+    struct alsals_context *cxt = NULL;
+	//int err =0;
+	cxt = alsals_context_obj;
+#else
     struct alsps_context *cxt = NULL;
 	//int err =0;
 	cxt = alsps_context_obj;
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 	if(NULL  == cxt->als_ctl.open_report_data)
 	{
 	  ALSPS_ERR("no als control path\n");
@@ -430,7 +559,31 @@ static int ps_enable_data(int enable)
 static ssize_t als_store_active(struct device* dev, struct device_attribute *attr,
                                   const char *buf, size_t count)
 {  
-	struct alsps_context *cxt = NULL;
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+	struct alsals_context *cxt = NULL;
+	//int err =0;
+	ALSPS_LOG("als_store_active buf=%s\n",buf);
+	mutex_lock(&alsals_context_obj->alsps_op_mutex);
+	cxt = alsals_context_obj;
+
+    if (!strncmp(buf, "1", 1)) 
+	{
+      	als_enable_data(1);
+    	} 
+	else if (!strncmp(buf, "0", 1))
+	{
+       als_enable_data(0);
+    	}
+	else
+	{
+	  ALSPS_ERR(" alsps_store_active error !!\n");
+	}
+	mutex_unlock(&alsals_context_obj->alsps_op_mutex);
+	ALSPS_LOG(" alsps_store_active done\n");
+    return count;
+#else
+   struct alsps_context *cxt = NULL;
 	//int err =0;
 	ALSPS_LOG("als_store_active buf=%s\n",buf);
 	mutex_lock(&alsps_context_obj->alsps_op_mutex);
@@ -451,24 +604,104 @@ static ssize_t als_store_active(struct device* dev, struct device_attribute *att
 	mutex_unlock(&alsps_context_obj->alsps_op_mutex);
 	ALSPS_LOG(" alsps_store_active done\n");
     return count;
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 }
 /*----------------------------------------------------------------------------*/
 static ssize_t als_show_active(struct device* dev, 
                                  struct device_attribute *attr, char *buf) 
 {
-	struct alsps_context *cxt = NULL;
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+	struct alsals_context *cxt = NULL;
+	int div = 0;
+	cxt = alsals_context_obj;
+	div=cxt->als_data.vender_div;
+	ALSPS_LOG("als vender_div value: %d\n", div);
+	return snprintf(buf, PAGE_SIZE, "%d\n", div); 
+#else
+    struct alsps_context *cxt = NULL;
 	int div = 0;
 	cxt = alsps_context_obj;
 	div=cxt->als_data.vender_div;
 	ALSPS_LOG("als vender_div value: %d\n", div);
 	return snprintf(buf, PAGE_SIZE, "%d\n", div); 
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 }
 
+/*dixiaobing@wind-mobi.com 20150525 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+static ssize_t ps_store_nonwakeupps(struct device* dev, struct device_attribute *attr,
+                                  const char *buf, size_t count)
+{
+      struct alsps_context *cxt = NULL;
+	//int err =0;
+	ALSPS_LOG("ps_store_nonwakeupps buf=%s\n",buf);
+	mutex_lock(&alsps_context_obj->alsps_op_mutex);
+	cxt = alsps_context_obj;
+
+        if (!strncmp(buf, "1", 1)) 
+	{
+      	   non_wakeup_ps = 1;
+    	} 
+	else if (!strncmp(buf, "0", 1))
+	{
+           non_wakeup_ps =0;
+    	}
+	else
+	{
+	  ALSPS_ERR(" ps_store_active error !!\n");
+	}
+	mutex_unlock(&alsps_context_obj->alsps_op_mutex);
+	ALSPS_LOG(" ps_store_nonwakeupps done\n");
+    return count;
+ 
+}
+static ssize_t ps_show_nonwakeupps(struct device* dev,
+                                 struct device_attribute *attr, char *buf)
+{
+       return sprintf(buf, "non_wakeup_ps = %d\n", non_wakeup_ps); 
+}
+#endif
+/*dixiaobing@wind-mobi.com 20150525 end*/
 static ssize_t als_store_delay(struct device* dev, struct device_attribute *attr,
                                   const char *buf, size_t count)
 
 {
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
     	//struct alsps_context *devobj = (struct alsps_context*)dev_get_drvdata(dev);
+    int delay;
+	int mdelay=0;
+	struct alsals_context *cxt = NULL;
+	//int err =0;
+	mutex_lock(&alsals_context_obj->alsps_op_mutex);
+	cxt = alsals_context_obj;
+	if(NULL == cxt->als_ctl.set_delay)
+	{
+		ALSPS_LOG("als_ctl set_delay NULL\n");
+		mutex_unlock(&alsals_context_obj->alsps_op_mutex);
+	 	return count;
+	}
+
+    if (1 != sscanf(buf, "%d", &delay)) {
+        ALSPS_ERR("invalid format!!\n");
+		mutex_unlock(&alsals_context_obj->alsps_op_mutex);
+        return count;
+    }
+
+    if(false == cxt->als_ctl.is_report_input_direct)
+    {
+    	mdelay = (int)delay/1000/1000;
+    	atomic_set(&alsals_context_obj->delay_als, mdelay);
+    }
+    cxt->als_ctl.set_delay(delay);
+	ALSPS_LOG(" als_delay %d ns\n",delay);
+	mutex_unlock(&alsals_context_obj->alsps_op_mutex);
+    return count;
+#else
+//struct alsps_context *devobj = (struct alsps_context*)dev_get_drvdata(dev);
     int delay;
 	int mdelay=0;
 	struct alsps_context *cxt = NULL;
@@ -497,7 +730,8 @@ static ssize_t als_store_delay(struct device* dev, struct device_attribute *attr
 	ALSPS_LOG(" als_delay %d ns\n",delay);
 	mutex_unlock(&alsps_context_obj->alsps_op_mutex);
     return count;
-
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 }
 
 static ssize_t als_show_delay(struct device* dev, 
@@ -512,11 +746,21 @@ static ssize_t als_show_delay(struct device* dev,
 static ssize_t als_store_batch(struct device* dev, struct device_attribute *attr,
                                   const char *buf, size_t count)
 {
-	struct alsps_context *cxt = NULL;
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+	struct alsals_context *cxt = NULL;
+	//int err =0;
+	ALSPS_LOG("als_store_batch buf=%s\n",buf);
+	mutex_lock(&alsals_context_obj->alsps_op_mutex);
+	cxt = alsals_context_obj;
+#else
+    struct alsps_context *cxt = NULL;
 	//int err =0;
 	ALSPS_LOG("als_store_batch buf=%s\n",buf);
 	mutex_lock(&alsps_context_obj->alsps_op_mutex);
 	cxt = alsps_context_obj;
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 	if(cxt->als_ctl.is_support_batch){
 	    	if (!strncmp(buf, "1", 1)) 
 		{
@@ -551,7 +795,13 @@ static ssize_t als_store_batch(struct device* dev, struct device_attribute *attr
 	}else{
 		ALSPS_LOG(" als_store_batch not supported\n");
 	}
-	mutex_unlock(&alsps_context_obj->alsps_op_mutex);
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+	mutex_unlock(&alsals_context_obj->alsps_op_mutex);
+#else
+    mutex_unlock(&alsps_context_obj->alsps_op_mutex);
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 	ALSPS_LOG(" als_store_batch done: %d\n", cxt->is_als_batch_enable);
     return count;
 
@@ -583,7 +833,13 @@ static ssize_t als_show_devnum(struct device* dev,
                                  struct device_attribute *attr, char *buf) 
 {
 	const char *devname =NULL;
-	devname = dev_name(&alsps_context_obj->idev->dev);
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+	devname = dev_name(&alsals_context_obj->idev->dev);
+#else
+    devname = dev_name(&alsps_context_obj->idev->dev);
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 	return snprintf(buf, PAGE_SIZE, "%s\n", devname+5); 
 }
 static ssize_t ps_store_active(struct device* dev, struct device_attribute *attr,
@@ -791,6 +1047,7 @@ static int alsps_real_driver_init(void)
 		if(0 == err)
 		{
 		   ALSPS_LOG(" alsps real driver %s probe ok\n", alsps_init_list[i]->name);
+		   alsps_name =  alsps_init_list[i]->name;    //add by yudengwu 2015-01-30
 		   break;
 		}
 	  }
@@ -880,8 +1137,81 @@ static int alsps_misc_init(struct alsps_context *cxt)
 	}
 	return err;
 }
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+static int alsals_misc_init(struct alsals_context *cxt)
+{
+
+    int err=0;
+    cxt->mdev.minor = MISC_DYNAMIC_MINOR;
+	cxt->mdev.name  = ALSALS_MISC_DEV_NAME;
+	if((err = misc_register(&cxt->mdev)))
+	{
+		ALSPS_ERR("unable to register alsals misc device!!\n");
+	}
+	return err;
+}
+static int alsps_input_init(struct alsps_context *cxt)
+{
+	struct input_dev *dev;
+	int err = 0;
+
+	dev = input_allocate_device();
+	if (NULL == dev)
+		return -ENOMEM;
+
+	dev->name = ALSPS_INPUTDEV_NAME;
+
+	set_bit(EV_REL, dev->evbit);
+	set_bit(EV_SYN, dev->evbit);
+	input_set_capability(dev, EV_REL, EVENT_TYPE_PS_VALUE);
+	input_set_capability(dev, EV_REL, EVENT_TYPE_PS_STATUS);
+	
+	input_set_abs_params(dev, EVENT_TYPE_ALS_VALUE, ALSPS_VALUE_MIN, ALSPS_VALUE_MAX, 0, 0);
+	input_set_abs_params(dev, EVENT_TYPE_ALS_STATUS, ALSPS_STATUS_MIN, ALSPS_STATUS_MAX, 0, 0);
+	input_set_drvdata(dev, cxt);
+
+	err = input_register_device(dev);
+	if (err < 0) {
+		input_free_device(dev);
+		return err;
+	}
+	cxt->idev= dev;
+
+	return 0;
+}
 
 
+static int alsals_input_init(struct alsals_context *cxt)
+{
+	struct input_dev *dev;
+	int err = 0;
+
+	dev = input_allocate_device();
+	if (NULL == dev)
+		return -ENOMEM;
+
+	dev->name = ALSALS_INPUTDEV_NAME;
+
+	set_bit(EV_REL, dev->evbit);
+	set_bit(EV_SYN, dev->evbit);
+
+	input_set_capability(dev, EV_ABS, EVENT_TYPE_ALS_VALUE);
+	input_set_capability(dev, EV_ABS, EVENT_TYPE_ALS_STATUS);
+	input_set_abs_params(dev, EVENT_TYPE_ALS_VALUE, ALSPS_VALUE_MIN, ALSPS_VALUE_MAX, 0, 0);
+	input_set_abs_params(dev, EVENT_TYPE_ALS_STATUS, ALSPS_STATUS_MIN, ALSPS_STATUS_MAX, 0, 0);
+	input_set_drvdata(dev, cxt);
+
+	err = input_register_device(dev);
+	if (err < 0) {
+		input_free_device(dev);
+		return err;
+	}
+	cxt->idev= dev;
+
+	return 0;
+}
+#else
 static int alsps_input_init(struct alsps_context *cxt)
 {
 	struct input_dev *dev;
@@ -913,20 +1243,62 @@ static int alsps_input_init(struct alsps_context *cxt)
 
 	return 0;
 }
-
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 
 DEVICE_ATTR(alsactive,     		S_IWUSR | S_IRUGO, als_show_active, als_store_active);
 DEVICE_ATTR(alsdelay,      		S_IWUSR | S_IRUGO, als_show_delay,  als_store_delay);
 DEVICE_ATTR(alsbatch,      		S_IWUSR | S_IRUGO, als_show_batch,  als_store_batch);
 DEVICE_ATTR(alsflush,      		S_IWUSR | S_IRUGO, als_show_flush,  als_store_flush);
 DEVICE_ATTR(alsdevnum,      		S_IWUSR | S_IRUGO, als_show_devnum,  NULL);
+
+
 DEVICE_ATTR(psactive,     		S_IWUSR | S_IRUGO, ps_show_active, ps_store_active);
 DEVICE_ATTR(psdelay,      		S_IWUSR | S_IRUGO, ps_show_delay,  ps_store_delay);
 DEVICE_ATTR(psbatch,      		S_IWUSR | S_IRUGO, ps_show_batch,  ps_store_batch);
 DEVICE_ATTR(psflush,      		S_IWUSR | S_IRUGO, ps_show_flush,  ps_store_flush);
 DEVICE_ATTR(psdevnum,      		S_IWUSR | S_IRUGO, ps_show_devnum,  NULL);
+/*dixiaobing@wind-mobi.com 20150525 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+DEVICE_ATTR(nonwakeupps,                S_IWUSR | S_IRUGO, ps_show_nonwakeupps,  ps_store_nonwakeupps);
+#endif
+/*dixiaobing@wind-mobi.com 20150525 end*/
+
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+static struct attribute *alsps_attributes[] = {
+	&dev_attr_psactive.attr,
+	&dev_attr_psdelay.attr,
+	&dev_attr_psbatch.attr,
+	&dev_attr_psflush.attr,
+/*dixiaobing@wind-mobi.com 20150525 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+    &dev_attr_nonwakeupps.attr,
+#endif
+/*dixiaobing@wind-mobi.com 20150525 end*/
+	&dev_attr_psdevnum.attr,
+	NULL
+};
+
+static struct attribute *alsals_attributes[] = {
+	&dev_attr_alsactive.attr,
+	&dev_attr_alsdelay.attr,
+	&dev_attr_alsbatch.attr,
+	&dev_attr_alsflush.attr,
+	&dev_attr_alsdevnum.attr,
+	NULL
+};
 
 
+static struct attribute_group alsps_attribute_group = {
+	.attrs = alsps_attributes
+};
+
+
+static struct attribute_group alsals_attribute_group = {
+	.attrs = alsals_attributes
+};
+#else
 static struct attribute *alsps_attributes[] = {
 	&dev_attr_alsactive.attr,
 	&dev_attr_alsdelay.attr,
@@ -937,6 +1309,11 @@ static struct attribute *alsps_attributes[] = {
 	&dev_attr_psdelay.attr,
 	&dev_attr_psbatch.attr,
 	&dev_attr_psflush.attr,
+/*dixiaobing@wind-mobi.com 20150525 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+    &dev_attr_nonwakeupps.attr,
+#endif
+/*dixiaobing@wind-mobi.com 20150525 end*/
 	&dev_attr_psdevnum.attr,
 	NULL
 };
@@ -944,12 +1321,21 @@ static struct attribute *alsps_attributes[] = {
 static struct attribute_group alsps_attribute_group = {
 	.attrs = alsps_attributes
 };
-
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 int als_register_data_path(struct als_data_path *data)
 {
-	struct alsps_context *cxt = NULL;
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+	struct alsals_context *cxt = NULL;
+	//int err =0;
+	cxt = alsals_context_obj;
+#else
+   	struct alsps_context *cxt = NULL;
 	//int err =0;
 	cxt = alsps_context_obj;
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 	cxt->als_data.get_data = data->get_data;
 	cxt->als_data.vender_div = data->vender_div;
 	cxt->als_data.als_get_raw_data = data->als_get_raw_data;
@@ -978,7 +1364,151 @@ int ps_register_data_path(struct ps_data_path *data)
 	}
 	return 0;
 }
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+int als_register_control_path(struct als_control_path *ctl)
+{
+	struct alsals_context *cxt = NULL;
+	int err =0;
+	cxt = alsals_context_obj;
+	cxt->als_ctl.set_delay = ctl->set_delay;
+	cxt->als_ctl.open_report_data= ctl->open_report_data;
+	cxt->als_ctl.enable_nodata = ctl->enable_nodata;
+	cxt->als_ctl.is_support_batch = ctl->is_support_batch;
+	cxt->als_ctl.is_report_input_direct= ctl->is_report_input_direct;
+    cxt->als_ctl.is_use_common_factory = ctl->is_use_common_factory;
+	
+	if(NULL==cxt->als_ctl.set_delay || NULL==cxt->als_ctl.open_report_data
+		|| NULL==cxt->als_ctl.enable_nodata)
+	{
+		ALSPS_LOG("als register control path fail \n");
+	 	return -1;
+	}
+	
+	
+	//add misc dev for sensor hal control cmd
+	err = alsals_misc_init(alsals_context_obj);
+	if(err)
+	{
+	   ALSPS_ERR("unable to register alsps misc device!!\n");
+	   return -2;
+	}
+	err = sysfs_create_group(&alsals_context_obj->mdev.this_device->kobj,
+			&alsals_attribute_group);
+	if (err < 0)
+	{
+	   ALSPS_ERR("unable to create alsps attribute file\n");
+	   return -3;
+	}
 
+		
+	kobject_uevent(&alsals_context_obj->mdev.this_device->kobj, KOBJ_ADD);
+	
+	return 0;	
+}
+
+int ps_register_control_path(struct ps_control_path *ctl)
+{
+	struct alsps_context *cxt = NULL;
+	int err =0;
+	cxt = alsps_context_obj;
+	cxt->ps_ctl.set_delay = ctl->set_delay;
+	cxt->ps_ctl.open_report_data= ctl->open_report_data;
+	cxt->ps_ctl.enable_nodata = ctl->enable_nodata;
+	cxt->ps_ctl.is_support_batch = ctl->is_support_batch;
+	cxt->ps_ctl.is_report_input_direct= ctl->is_report_input_direct;
+	cxt->ps_ctl.ps_calibration = ctl->ps_calibration;
+	cxt->ps_ctl.ps_threshold_setting = ctl->ps_threshold_setting;
+	cxt->ps_ctl.is_use_common_factory = ctl->is_use_common_factory;
+	
+	if(NULL==cxt->ps_ctl.set_delay || NULL==cxt->ps_ctl.open_report_data
+		|| NULL==cxt->ps_ctl.enable_nodata)
+	{
+		ALSPS_LOG("ps register control path fail \n");
+	 	return -1;
+	}
+
+	
+	//add misc dev for sensor hal control cmd
+	err = alsps_misc_init(alsps_context_obj);
+	if(err)
+	{
+	   ALSPS_ERR("unable to register alsps misc device!!\n");
+	   return -2;
+	}
+	err = sysfs_create_group(&alsps_context_obj->mdev.this_device->kobj,
+			&alsps_attribute_group);
+	if (err < 0)
+	{
+	   ALSPS_ERR("unable to create alsps attribute file\n");
+	   return -3;
+	}
+
+		
+	kobject_uevent(&alsps_context_obj->mdev.this_device->kobj, KOBJ_ADD);
+	
+	return 0;	
+}
+
+//AAL functions****************************************
+int alsps_aal_enable(int enable)
+{	
+	int ret = 0;
+	struct alsals_context *cxt = NULL;
+
+	if(!alsals_context_obj){
+		ALSPS_ERR("null pointer of alsps_context_obj!!\n");
+		return -1;
+	}
+		
+	if(alsals_context_obj->als_ctl.enable_nodata == NULL){
+		ALSPS_ERR("alsps context obj not exsit in alsps_aal_enable\n");
+		return -1;
+	}
+	cxt = alsals_context_obj;
+
+	if(enable == 1){
+		if(alsals_context_obj->is_als_active_data == false)
+			ret = cxt->als_ctl.enable_nodata(enable);
+	}else if(enable == 0){
+		if(alsals_context_obj->is_als_active_data == false)
+			ret = cxt->als_ctl.enable_nodata(enable);
+	}
+	
+	return ret;
+}
+
+int alsps_aal_get_status()
+{
+	return 0;
+}
+
+int alsps_aal_get_data()
+{
+	int ret = 0;
+	struct alsals_context *cxt = NULL;
+	int value = 0;
+	int status = 0;
+	
+	if(!alsals_context_obj){
+		ALSPS_ERR("alsps_context_obj null pointer!!\n");
+		return -1;
+	}	
+	
+	if(alsals_context_obj->als_data.get_data == NULL){
+		ALSPS_ERR("aal:get_data not exsit\n");
+		return -1;
+	}
+	
+	cxt = alsals_context_obj;
+	ret = cxt->als_data.get_data(&value,&status);
+	if(ret < 0)
+		return -1;
+	
+	return value;
+}
+//***************************************************
+#else
 int als_register_control_path(struct als_control_path *ctl)
 {
 	struct alsps_context *cxt = NULL;
@@ -1023,8 +1553,6 @@ int als_register_control_path(struct als_control_path *ctl)
 int ps_register_control_path(struct ps_control_path *ctl)
 {
 	struct alsps_context *cxt = NULL;
-	int err =0;
-	
 	cxt = alsps_context_obj;
 	cxt->ps_ctl.set_delay = ctl->set_delay;
 	cxt->ps_ctl.open_report_data= ctl->open_report_data;
@@ -1041,7 +1569,8 @@ int ps_register_control_path(struct ps_control_path *ctl)
 		ALSPS_LOG("ps register control path fail \n");
 	 	return -1;
 	}
-/*
+
+	/*
 	//add misc dev for sensor hal control cmd
 	err = alsps_misc_init(alsps_context_obj);
 	if(err)
@@ -1062,50 +1591,6 @@ int ps_register_control_path(struct ps_control_path *ctl)
 	*/
 	return 0;	
 }
-
-int ps_register_control_path_for_kpd(struct ps_control_path *ctl)
-{
-	struct alsps_context *cxt = NULL;
-	int err =0;
-	
-	cxt = alsps_context_obj;
-	cxt->ps_ctl.set_delay = ctl->set_delay;
-	cxt->ps_ctl.open_report_data= ctl->open_report_data;
-	cxt->ps_ctl.enable_nodata = ctl->enable_nodata;
-	cxt->ps_ctl.is_support_batch = ctl->is_support_batch;
-	cxt->ps_ctl.is_report_input_direct= ctl->is_report_input_direct;
-	cxt->ps_ctl.ps_calibration = ctl->ps_calibration;
-	cxt->ps_ctl.ps_threshold_setting = ctl->ps_threshold_setting;
-	cxt->ps_ctl.is_use_common_factory = ctl->is_use_common_factory;
-	
-	if(NULL==cxt->ps_ctl.set_delay || NULL==cxt->ps_ctl.open_report_data
-		|| NULL==cxt->ps_ctl.enable_nodata)
-	{
-		ALSPS_LOG("ps register control path fail \n");
-	 	return -1;
-	}
-
-	//add misc dev for sensor hal control cmd
-	err = alsps_misc_init(alsps_context_obj);
-	if(err)
-	{
-	   ALSPS_ERR("unable to register alsps misc device!!\n");
-	   return -2;
-	}
-	err = sysfs_create_group(&alsps_context_obj->mdev.this_device->kobj,
-			&alsps_attribute_group);
-	if (err < 0)
-	{
-	   ALSPS_ERR("unable to create alsps attribute file\n");
-	   return -3;
-	}
-
-		
-	kobject_uevent(&alsps_context_obj->mdev.this_device->kobj, KOBJ_ADD);
-	
-	return 0;	
-}
-
 
 //AAL functions****************************************
 int alsps_aal_enable(int enable)
@@ -1165,6 +1650,10 @@ int alsps_aal_get_data()
 	return value;
 }
 //***************************************************
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
+
+
 
 static int alsps_probe(struct platform_device *pdev) 
 {
@@ -1179,7 +1668,19 @@ static int alsps_probe(struct platform_device *pdev)
 		ALSPS_ERR("unable to allocate devobj!\n");
 		goto exit_alloc_data_failed;
 	}
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+	alsals_context_obj = alsals_context_alloc_object();
 
+	
+	if (!alsals_context_obj)
+	{
+		err = -ENOMEM;
+		ALSPS_ERR("unable to allocate devobj!\n");
+		goto exit_alloc_data_failed;
+	}
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 	//init real alspseleration driver
     err = alsps_real_driver_init();
 	if(err)
@@ -1201,13 +1702,32 @@ static int alsps_probe(struct platform_device *pdev)
 		ALSPS_ERR("unable to register alsps input device!\n");
 		goto exit_alloc_input_dev_failed;
 	}
-
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+    	//init input dev
+	err = alsals_input_init(alsals_context_obj);
+	if(err)
+	{
+		ALSPS_ERR("unable to register alsps input device!\n");
+		goto exit_alloc_input_dev_failed;
+	}
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/	
 #if defined(CONFIG_HAS_EARLYSUSPEND) && defined(CONFIG_EARLYSUSPEND)
     atomic_set(&(alsps_context_obj->early_suspend), 0);
 	alsps_context_obj->early_drv.level    = EARLY_SUSPEND_LEVEL_STOP_DRAWING - 1,
 	alsps_context_obj->early_drv.suspend  = alsps_early_suspend,
 	alsps_context_obj->early_drv.resume   = alsps_late_resume,    
 	register_early_suspend(&alsps_context_obj->early_drv);
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+	atomic_set(&(alsals_context_obj->early_suspend), 0);
+	alsals_context_obj->early_drv.level    = EARLY_SUSPEND_LEVEL_STOP_DRAWING - 1,
+	alsals_context_obj->early_drv.suspend  = alsals_early_suspend,
+	alsals_context_obj->early_drv.resume   = alsals_late_resume,    
+	register_early_suspend(&alsals_context_obj->early_drv);
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 #endif
 
   
@@ -1224,6 +1744,12 @@ static int alsps_probe(struct platform_device *pdev)
 	exit_alloc_input_dev_failed:    
 	kfree(alsps_context_obj);
 	alsps_context_obj = NULL;
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+	kfree(alsals_context_obj);
+	alsals_context_obj = NULL;
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 	exit_alloc_data_failed:
 	
 
@@ -1235,6 +1761,33 @@ static int alsps_probe(struct platform_device *pdev)
 
 static int alsps_remove(struct platform_device *pdev)
 {
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+	int err=0;
+	ALSPS_FUN(f);
+	input_unregister_device(alsps_context_obj->idev); 
+	
+	input_unregister_device(alsals_context_obj->idev); 
+	
+	sysfs_remove_group(&alsps_context_obj->idev->dev.kobj,
+				&alsps_attribute_group);
+	
+	sysfs_remove_group(&alsals_context_obj->idev->dev.kobj,
+				&alsals_attribute_group);
+
+	
+	
+	if((err = misc_deregister(&alsps_context_obj->mdev)))
+	{
+		ALSPS_ERR("misc_deregister fail: %d\n", err);
+	}
+    kfree(alsps_context_obj);
+	if((err = misc_deregister(&alsals_context_obj->mdev)))
+	{
+		ALSPS_ERR("misc_deregister fail: %d\n", err);
+	}
+	kfree(alsals_context_obj);
+#else
 	int err=0;
 	ALSPS_FUN(f);
 	input_unregister_device(alsps_context_obj->idev);        
@@ -1246,7 +1799,8 @@ static int alsps_remove(struct platform_device *pdev)
 		ALSPS_ERR("misc_deregister fail: %d\n", err);
 	}
 	kfree(alsps_context_obj);
-
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 	return 0;
 }
 
@@ -1263,6 +1817,23 @@ static void alsps_late_resume(struct early_suspend *h)
    ALSPS_LOG(" alsps_late_resume ok------->hwm_obj->early_suspend=%d \n",atomic_read(&(alsps_context_obj->early_suspend)));
    return ;
 }
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+static void alsals_early_suspend(struct early_suspend *h) 
+{
+   atomic_set(&(alsals_context_obj->early_suspend), 1);
+   ALSPS_LOG(" alsals_early_suspend ok------->hwm_obj->early_suspend=%d \n",atomic_read(&(alsals_context_obj->early_suspend)));
+   return ;
+}
+/*----------------------------------------------------------------------------*/
+static void alsals_late_resume(struct early_suspend *h)
+{
+   atomic_set(&(alsals_context_obj->early_suspend), 0);
+   ALSPS_LOG(" alsals_late_resume ok------->hwm_obj->early_suspend=%d \n",atomic_read(&(alsals_context_obj->early_suspend)));
+   return ;
+}
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 
 static int alsps_suspend(struct platform_device *dev, pm_message_t state) 
 {

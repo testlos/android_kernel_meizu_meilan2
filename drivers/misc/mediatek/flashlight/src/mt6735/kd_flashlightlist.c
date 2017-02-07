@@ -823,8 +823,8 @@ static int __init flashlight_init(void)
 		return ret;
 	}
 
-//	register_low_battery_notify(&Lbat_protection_powerlimit_flash, LOW_BATTERY_PRIO_FLASHLIGHT);
-//	register_battery_percent_notify(&bat_per_protection_powerlimit_flashlight, BATTERY_PERCENT_PRIO_FLASHLIGHT);
+	//register_low_battery_notify(&Lbat_protection_powerlimit_flash, LOW_BATTERY_PRIO_FLASHLIGHT);//liukun@wind-mobi.com 20150717
+	//register_battery_percent_notify(&bat_per_protection_powerlimit_flashlight, BATTERY_PERCENT_PRIO_FLASHLIGHT);//liukun@wind-mobi.com 20150717
 //@@    register_battery_oc_notify(&bat_oc_protection_powerlimit, BATTERY_OC_PRIO_FLASHLIGHT);
 	
 	logI("[flashlight_probe] done! ~");

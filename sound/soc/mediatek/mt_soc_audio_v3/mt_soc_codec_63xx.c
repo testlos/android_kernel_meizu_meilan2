@@ -1771,7 +1771,7 @@ static int Speaker_Amp_Set(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_va
 
 static unsigned int pin_extspkamp, pin_extspkamp_2, pin_vowclk, pin_audmiso, pin_rcvspkswitch;
 static unsigned int pin_mode_extspkamp, pin_mode_extspkamp_2, pin_mode_vowclk, pin_mode_audmiso, pin_mode_rcvspkswitch;
-#undef CONFIG_OF
+
 #ifdef CONFIG_OF 
 
 #define GAP (2) //unit: us
@@ -1859,7 +1859,6 @@ static void Ext_Speaker_Amp_Change(bool enable)
 #ifdef  AW8736_MODE_CTRL
 /* 0.75us<TL<10us; 0.75us<TH<10us */
 #define GAP (2) //unit: us
-#ifndef GPIO_EXT_SPKAMP2_EN_PIN
 #define AW8736_MODE1 /*1.2w*/ \
     mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN,GPIO_OUT_ONE);
 
@@ -1895,59 +1894,6 @@ static void Ext_Speaker_Amp_Change(bool enable)
     mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN,GPIO_OUT_ZERO); \
     udelay(GAP); \
     mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN,GPIO_OUT_ONE);
-#else//#ifndef GPIO_EXT_SPKAMP2_EN_PIN
-#define AW8736_MODE1 /*1.2w*/ \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN,GPIO_OUT_ONE); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP2_EN_PIN,GPIO_OUT_ONE);
-
-#define AW8736_MODE2 /*1.0w*/ \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN,GPIO_OUT_ONE); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP2_EN_PIN,GPIO_OUT_ONE); \
-    udelay(GAP); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN,GPIO_OUT_ZERO); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP2_EN_PIN,GPIO_OUT_ZERO); \
-    udelay(GAP); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN,GPIO_OUT_ONE); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP2_EN_PIN,GPIO_OUT_ONE);
-
-#define AW8736_MODE3 /*0.8w*/ \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN,GPIO_OUT_ONE); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP2_EN_PIN,GPIO_OUT_ONE); \
-    udelay(GAP); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN,GPIO_OUT_ZERO); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP2_EN_PIN,GPIO_OUT_ZERO); \
-    udelay(GAP); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN,GPIO_OUT_ONE); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP2_EN_PIN,GPIO_OUT_ONE); \
-    udelay(GAP); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN,GPIO_OUT_ZERO); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP2_EN_PIN,GPIO_OUT_ZERO); \
-    udelay(GAP); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN,GPIO_OUT_ONE); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP2_EN_PIN,GPIO_OUT_ONE);
-
-#define AW8736_MODE4 /*it depends on THD, range: 1.5 ~ 2.0w*/ \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN,GPIO_OUT_ONE); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP2_EN_PIN,GPIO_OUT_ONE); \
-    udelay(GAP); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN,GPIO_OUT_ZERO); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP2_EN_PIN,GPIO_OUT_ZERO); \
-    udelay(GAP); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN,GPIO_OUT_ONE); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP2_EN_PIN,GPIO_OUT_ONE); \
-    udelay(GAP); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN,GPIO_OUT_ZERO); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP2_EN_PIN,GPIO_OUT_ZERO); \
-    udelay(GAP); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN,GPIO_OUT_ONE); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP2_EN_PIN,GPIO_OUT_ONE); \
-    udelay(GAP); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN,GPIO_OUT_ZERO); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP2_EN_PIN,GPIO_OUT_ZERO); \
-    udelay(GAP); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN,GPIO_OUT_ONE); \
-    mt_set_gpio_out(GPIO_EXT_SPKAMP2_EN_PIN,GPIO_OUT_ONE);
-#endif
 #endif
 #endif
 
@@ -1965,25 +1911,13 @@ static void Ext_Speaker_Amp_Change(bool enable)
         mt_set_gpio_pull_enable(GPIO_EXT_SPKAMP_EN_PIN, GPIO_PULL_ENABLE);
         mt_set_gpio_dir(GPIO_EXT_SPKAMP_EN_PIN, GPIO_DIR_OUT); // output
         mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN, GPIO_OUT_ZERO); // low disable
-#ifdef GPIO_EXT_SPKAMP2_EN_PIN
-        mt_set_gpio_mode(GPIO_EXT_SPKAMP2_EN_PIN, GPIO_MODE_00); //GPIO117: DPI_D3, mode 0
-        mt_set_gpio_pull_enable(GPIO_EXT_SPKAMP2_EN_PIN, GPIO_PULL_ENABLE);
-        mt_set_gpio_dir(GPIO_EXT_SPKAMP2_EN_PIN, GPIO_DIR_OUT); // output
-        mt_set_gpio_out(GPIO_EXT_SPKAMP2_EN_PIN, GPIO_OUT_ZERO); // low disable
-#endif
         udelay(1000);
         mt_set_gpio_dir(GPIO_EXT_SPKAMP_EN_PIN, GPIO_DIR_OUT); // output
-#ifdef GPIO_EXT_SPKAMP2_EN_PIN
-        mt_set_gpio_dir(GPIO_EXT_SPKAMP2_EN_PIN, GPIO_DIR_OUT); // output
-#endif
 
 #ifdef AW8736_MODE_CTRL
         AW8736_MODE3;
 #else
         mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN, GPIO_OUT_ONE); // high enable
-#ifdef GPIO_EXT_SPKAMP2_EN_PIN
-        mt_set_gpio_out(GPIO_EXT_SPKAMP2_EN_PIN, GPIO_OUT_ONE); // high enable
-#endif
 #endif
 
         msleep(SPK_WARM_UP_TIME);
@@ -1997,10 +1931,6 @@ static void Ext_Speaker_Amp_Change(bool enable)
         //mt_set_gpio_mode(GPIO_EXT_SPKAMP_EN_PIN, GPIO_MODE_00); //GPIO117: DPI_D3, mode 0
         mt_set_gpio_dir(GPIO_EXT_SPKAMP_EN_PIN, GPIO_DIR_OUT); // output
         mt_set_gpio_out(GPIO_EXT_SPKAMP_EN_PIN, GPIO_OUT_ZERO); // low disbale
-#ifdef GPIO_EXT_SPKAMP2_EN_PIN
-        mt_set_gpio_dir(GPIO_EXT_SPKAMP2_EN_PIN, GPIO_DIR_OUT); // output
-        mt_set_gpio_out(GPIO_EXT_SPKAMP2_EN_PIN, GPIO_OUT_ZERO); // low disbale
-#endif
         udelay(500);
 #endif
         printk("Ext_Speaker_Amp_Change OFF- \n");
@@ -2729,8 +2659,8 @@ static bool TurnOnADcPowerACC(int ADCType, bool enable)
             if (mCodec_data->mAudio_Ana_Mux[AUDIO_MICSOURCE_MUX_IN_1] == 0) //"ADC1", main_mic
             {
                 SetDCcoupleNP(AUDIO_MIC_BIAS0, mAudio_Analog_Mic1_mode); //micbias0 DCCopuleNP
-                //Ana_Set_Reg(AUDENC_ANA_CON9, 0x0201, 0xff09); //Enable MICBIAS0, MISBIAS0 = 1P9V
-                Ana_Set_Reg(AUDENC_ANA_CON9, 0x0211, 0xff19); //Enable MICBIAS0, MISBIAS0 = 1P9V, also enable MICBIAS1 at the same time to avoid noise
+                Ana_Set_Reg(AUDENC_ANA_CON9, 0x0201, 0xff09); //Enable MICBIAS0, MISBIAS0 = 1P9V xuecheng modify for phonecall insert POP 20150623
+                //Ana_Set_Reg(AUDENC_ANA_CON9, 0x0211, 0xff19); //Enable MICBIAS0, MISBIAS0 = 1P9V, also enable MICBIAS1 at the same time to avoid noise
             }
             else if (mCodec_data->mAudio_Ana_Mux[AUDIO_MICSOURCE_MUX_IN_1] == 1) //"ADC2", headset mic
             {
@@ -2745,8 +2675,8 @@ static bool TurnOnADcPowerACC(int ADCType, bool enable)
         {
             printk("%s  AUDIO_ANALOG_DEVICE_IN_ADC2 refmic_using_ADC_L =%d \n", __func__, refmic_using_ADC_L);
             SetDCcoupleNP(AUDIO_MIC_BIAS0, mAudio_Analog_Mic2_mode); //micbias0 DCCopuleNP
-            //Ana_Set_Reg(AUDENC_ANA_CON9, 0x0201, 0xff09); //Enable MICBIAS0, MISBIAS0 = 1P9V
-            Ana_Set_Reg(AUDENC_ANA_CON9, 0x0211, 0xff19); //Enable MICBIAS0, MISBIAS0 = 1P9V, also enable MICBIAS1 at the same time to avoid noise
+            Ana_Set_Reg(AUDENC_ANA_CON9, 0x0201, 0xff09); //Enable MICBIAS0, MISBIAS0 = 1P9V  xuecheng modify for phonecall insert POP 20150623
+            //Ana_Set_Reg(AUDENC_ANA_CON9, 0x0211, 0xff19); //Enable MICBIAS0, MISBIAS0 = 1P9V, also enable MICBIAS1 at the same time to avoid noise
             if (refmic_using_ADC_L == false)
             {
 //                Ana_Set_Reg(AUDENC_ANA_CON15, 0x0030, 0x00f0); //Audio R PGA 18 dB gain(SMT)

@@ -1962,9 +1962,10 @@ wlanoidSetConnect(
     // re-association check
     if(kalGetMediaStateIndicated(prGlueInfo) == PARAM_MEDIA_STATE_CONNECTED) {
         if(fgEqualSsid) {
-			prAisAbortMsg->ucReasonOfDisconnect = DISCONNECT_REASON_CODE_REASSOCIATION;
+			prAisAbortMsg->ucReasonOfDisconnect = DISCONNECT_REASON_CODE_ROAMING;
             if (fgEqualBssid) {
 				kalSetMediaStateIndicated(prGlueInfo, PARAM_MEDIA_STATE_TO_BE_INDICATED);
+				prAisAbortMsg->ucReasonOfDisconnect = DISCONNECT_REASON_CODE_REASSOCIATION;
             }
         }
         else {

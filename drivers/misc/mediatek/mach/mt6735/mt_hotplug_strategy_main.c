@@ -497,7 +497,7 @@ suspend_end:
 /*
  * resume callback
  */
-static int __cpuinit hps_resume(struct device *dev)
+static int hps_resume(struct device *dev)
 {
     unsigned int cpu,little_cpu_num_resume;
     hps_warn("%s\n", __func__);
@@ -632,6 +632,9 @@ static void __exit hps_exit(void)
     int r = 0;
 
     hps_warn("hps_exit\n");
+//gemingming@wind-mobi.com cpu use info 20150603 begin
+	hps_procfs_deinit();
+//gemingming@wind-mobi.com cpu use info 20150603 end
 
     hps_ctxt.init_state = INIT_STATE_NOT_READY;
 

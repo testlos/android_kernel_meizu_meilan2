@@ -91,20 +91,88 @@ struct alsps_init_info
 	int (*uninit)(void);
 	struct platform_driver* platform_diver_addr;
 };
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+struct alsps_data{
+	hwm_sensor_data ps_data ;
+	int data_updata;
+};
 
+struct alsals_data{
+	hwm_sensor_data als_data ;
+	int data_updata;
+};
+#else
 struct alsps_data{
 	hwm_sensor_data als_data ;
 	hwm_sensor_data ps_data ;
 	int data_updata;
 };
-
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 struct alsps_drv_obj {
     void *self;
 	int polling;
 	int (*alsps_operate)(void* self, uint32_t command, void* buff_in, int size_in,
 		void* buff_out, int size_out, int* actualout);
 };
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+struct alsps_context {
+	struct input_dev   		*idev;
+	struct miscdevice   	mdev;
+	struct work_struct  	report_ps;
+	struct mutex 			alsps_op_mutex;
+	struct timer_list   		timer_ps;  /* ps polling timer */
+	
+	atomic_t            		trace;
+	atomic_t				delay_ps;/*ps polling period for reporting input event*/
+	atomic_t            		wake;  /*user-space request to wake-up, used with stop*/
 
+	struct early_suspend   early_drv;
+	atomic_t                	early_suspend;
+
+	struct alsps_data       	drv_data;
+	struct ps_control_path ps_ctl;
+	struct ps_data_path   	ps_data;
+	
+	bool					is_ps_active_nodata;// Active, but HAL don't need data sensor. such as orientation need
+	bool					is_ps_active_data;// Active and HAL need data .
+	
+	bool 				is_ps_first_data_after_enable;
+	bool 				is_ps_polling_run;
+	bool 				is_ps_batch_enable;	//version2.this is used for judging whether sensor is in batch mode
+	bool 				is_get_valid_ps_data_after_enable;
+};
+
+
+struct alsals_context {
+	struct input_dev   		*idev;
+	struct miscdevice   	mdev;
+	struct work_struct  	report_als;
+	struct mutex 			alsps_op_mutex;
+	struct timer_list   		timer_als;  /*als polling timer */
+	
+	atomic_t            		trace;
+	atomic_t            		delay_als; /*als polling period for reporting input event*/
+	atomic_t            		wake;  /*user-space request to wake-up, used with stop*/
+
+	struct early_suspend   early_drv;
+	atomic_t                	early_suspend;
+
+	struct alsals_data       	drv_data;
+	struct als_control_path	als_ctl;
+	struct als_data_path   	als_data;
+	
+	bool					is_als_active_nodata;// Active, but HAL don't need data sensor. such as orientation need
+	bool					is_als_active_data;// Active and HAL need data .
+	
+	bool 				is_als_first_data_after_enable;
+	bool 				is_als_polling_run;
+	bool 				is_als_batch_enable;	//version2.this is used for judging whether sensor is in batch mode
+	bool 				is_get_valid_als_data_after_enable;
+};
+#else
 struct alsps_context {
 	struct input_dev   		*idev;
 	struct miscdevice   	mdev;
@@ -142,6 +210,8 @@ struct alsps_context {
 	bool 				is_get_valid_ps_data_after_enable;
 	bool 				is_get_valid_als_data_after_enable;
 };
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 
 //AAL Functions
 extern int alsps_aal_enable(int enable);
@@ -157,6 +227,5 @@ extern int als_register_data_path(struct als_data_path *data);
 extern int ps_data_report(struct input_dev *dev, int value,int status);
 extern int ps_register_control_path(struct ps_control_path *ctl);
 extern int ps_register_data_path(struct ps_data_path *data);
-extern int ps_register_control_path_for_kpd(struct ps_control_path *ctl);
 
 #endif

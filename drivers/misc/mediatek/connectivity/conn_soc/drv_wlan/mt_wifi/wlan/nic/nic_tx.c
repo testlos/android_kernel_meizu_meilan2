@@ -559,7 +559,8 @@ nicTxAcquireResource (
             ucTC, prTxCtrl->rTc.aucFreeBufferCount[ucTC]));
 
         u4Status = WLAN_STATUS_SUCCESS;
-    }
+    } else
+    	DBGLOG(TX, WARN, ("no free buffer for TC %d\n", ucTC));
     KAL_RELEASE_SPIN_LOCK(prAdapter, SPIN_LOCK_TX_RESOURCE);
 
     return u4Status;
@@ -680,7 +681,7 @@ nicTxReleaseResource (
             prTxCtrl->rTc.aucFreeBufferCount[i] += aucTxRlsCnt[i];
         }
 		if (aucTxRlsCnt[TC4_INDEX] != 0 || aucTxRlsCnt[TC5_INDEX] != 0){
-            DBGLOG(TX, STATE, ("Release: TC4 count %d, Free=%d; TC5 count %d, Free=%d\n",
+            DBGLOG(INIT, STATE, ("Release: TC4 count %d, Free=%d; TC5 count %d, Free=%d\n",
                 aucTxRlsCnt[TC4_INDEX], prTxCtrl->rTc.aucFreeBufferCount[TC4_INDEX],
                 aucTxRlsCnt[TC5_INDEX], prTxCtrl->rTc.aucFreeBufferCount[TC5_INDEX]));
         }

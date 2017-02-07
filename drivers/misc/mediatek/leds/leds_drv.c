@@ -32,6 +32,10 @@
 #include <leds_hal.h>
 /* #include <linux/leds_hal.h> */
 #include "leds_drv.h"
+//gemingming@wind-mobi.com 20150601 modify breath led begin
+#include "../../../../drivers/base/base.h"
+//gemingming@wind-mobi.com 20150601 modify breath led end
+
 
 
 
@@ -641,12 +645,100 @@ static struct platform_device mt65xx_leds_device = {
 
 #endif
 
+//gemingming@wind-mobi.com 20150601 modify breath led begin
+unsigned int leds_mode = 0;
+unsigned int leds_factory = 0;
+
+static ssize_t leds_show(struct device *dev,
+		struct device_attribute *attr, int *buf)
+{
+	int i =0;
+	
+	printk("[darren]------wind--------show\n");
+	return sprintf(buf, "0x%x\n", leds_mode);
+}
+
+static ssize_t leds_store(struct device *dev,
+			      struct device_attribute *attr,
+			      const int *buf, size_t size)
+{
+	int i =0;
+	printk("[darren]--------wind------store\n");
+	sscanf(buf, "%d\n",&leds_mode );
+	udelay(200);
+	mt_brightness_set_pmic(1,255,0);
+	return size;
+}
+
+static ssize_t leds_factory_show(struct device *dev,
+		struct device_attribute *attr, int *buf)
+{
+	int i =0;
+	
+	printk("[darren]------wind--------show\n");
+	return sprintf(buf, "0x%x\n", leds_factory);
+}
+
+static ssize_t leds_factory_store(struct device *dev,
+			      struct device_attribute *attr,
+			      const int *buf, size_t size)
+{
+	int i =0;
+	printk("[darren]--------wind------store\n");
+	sscanf(buf, "%d\n",&leds_factory );
+	return size;
+}
+
+static DEVICE_ATTR(leds_mode, 0666, leds_show, leds_store);
+static DEVICE_ATTR(leds_factory, 0666, leds_factory_show, leds_factory_store);
+
+static struct attribute *sysfs_attrs_ctrl[] = {
+	&dev_attr_leds_mode.attr,
+	&dev_attr_leds_factory.attr,
+	NULL,
+};
+static struct attribute_group leds_attribute_group[] = {
+	{.attrs = sysfs_attrs_ctrl },
+};
+
+static struct kobject *leds_kobj;
+
+static void leds_node_init(void)
+{
+	int ret ;
+
+	printk("[darren] --------------gesture_node_init\n");
+	
+	leds_kobj = kobject_create_and_add("mx_leds", &devices_kset->kobj) ;
+	if (leds_kobj == NULL) {
+		printk(KERN_ERR "[darren]%s: kobject_create_and_add failed\n", __func__);
+		return;
+	}
+	
+	ret = sysfs_create_group(leds_kobj, leds_attribute_group);
+	if (ret < 0) {
+		printk(KERN_ERR "[darren]%s: sysfs_create_group failed\n", __func__);
+	}
+	return;
+}
+
+static void leds_node_uninit(void)
+{
+	if(leds_kobj){
+		sysfs_remove_group(leds_kobj, leds_attribute_group);
+		kobject_put(leds_kobj);
+	}	
+}
+//gemingming@wind-mobi.com 20150601 modify breath led end
+
 static int __init mt65xx_leds_init(void)
 {
 	int ret;
 
 	LEDS_DRV_DEBUG("[LED]%s\n", __func__);
-
+//gemingming@wind-mobi.com 20150601 modify breath led begin
+	leds_node_init();
+//gemingming@wind-mobi.com 20150601 modify breath led end
 #ifdef CONFIG_OF
 	ret = platform_device_register(&mt65xx_leds_device);
 	if (ret)
@@ -667,6 +759,9 @@ static int __init mt65xx_leds_init(void)
 
 static void __exit mt65xx_leds_exit(void)
 {
+//gemingming@wind-mobi.com 20150601 modify breath led begin
+	leds_node_uninit();
+//gemingming@wind-mobi.com 20150601 modify breath led end
 	platform_driver_unregister(&mt65xx_leds_driver);
 /* platform_device_unregister(&mt65xx_leds_device); */
 }

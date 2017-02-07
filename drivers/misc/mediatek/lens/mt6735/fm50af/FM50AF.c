@@ -19,7 +19,7 @@
 #endif
 
 
-#define LENS_I2C_BUSNUM 0//3
+#define LENS_I2C_BUSNUM 3
 
 #define AF_DRVNAME "FM50AF"
 #define I2C_SLAVE_ADDRESS        0x18

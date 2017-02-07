@@ -22,9 +22,9 @@ ccci_plat-y += $(CCCI_CUSTOM_DRIVER_DIR)/cust_auth.o
 endif
 endif
 
-ifeq ($(CONFIG_MTK_SECURITY_SW_SUPPORT), y)
-ccflags-y  += -DENABLE_MD_IMG_SECURITY_FEATURE
-endif
+#ifeq ($(CONFIG_MTK_SECURITY_SW_SUPPORT), y)
+#ccflags-y  += -DENABLE_MD_IMG_SECURITY_FEATURE
+#endif
 ifeq ($(CONFIG_MTK_SEC_MODEM_NVRAM_ANTI_CLONE), y)
 ccflags-y  += -DMTK_SEC_MODEM_NVRAM_ANTI_CLONE
 endif

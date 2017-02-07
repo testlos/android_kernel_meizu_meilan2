@@ -22,18 +22,10 @@ else
                else
                     ifeq ($(CONFIG_MTK_FAN5405_SUPPORT),y)
                         obj-$(CONFIG_MTK_SMART_BATTERY) += fan5405.o charging_hw_fan5405.o
-                    else
-                        ifeq ($(CONFIG_MTK_ETA6005_SUPPORT),y)
-                            obj-$(CONFIG_MTK_SMART_BATTERY) += charging_hw_eta6005.o
-                        else
-                            obj-$(CONFIG_MTK_SMART_BATTERY) += charging_hw_pmic.o
-                        endif
-                    endif
+                    else               
+                    obj-$(CONFIG_MTK_SMART_BATTERY) += charging_hw_pmic.o
                endif
           endif
      endif
 endif
-
-ifeq ($(TARGET_BUILD_VARIANT),user)
-ccflags-y += -DUSER_BUILD_KERNEL
 endif

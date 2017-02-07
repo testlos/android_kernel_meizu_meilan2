@@ -1380,7 +1380,15 @@ kalDevPortRead (
                     */
 				printk("DMA LoopCnt > 100000... (%lu %lu)\n", jiffies, PollTimeout);
 //LabelErr:
-                HifRegDump(GlueInfo->prAdapter);
+				{
+					UINT_32 uwcir = 0;
+					UINT_32 uwhlpcr = 0;
+
+					uwcir = (UINT_32)HIF_REG_READL(HifInfo, MCR_WCIR);
+					uwhlpcr = (UINT_32)HIF_REG_READL(HifInfo, MCR_WHLPCR);
+					printk("addr MCR_WCIR is %u, addr MCR_WHLPCR is %u\n", uwcir, uwhlpcr);
+				}
+
                 if (HifInfo->DmaOps->DmaRegDump != NULL)
                     HifInfo->DmaOps->DmaRegDump(HifInfo);
 
@@ -1396,20 +1404,6 @@ kalDevPortRead (
                 for(FwCnt=0; FwCnt<512; FwCnt++)
                     printk("0x%08x ", MCU_REG_READL(HifInfo, CONN_MCU_CPUPCR)); // CONSYS_REG_READ(CONSYS_CPUPCR_REG)
                 printk("\n\n");
-                kalDevRegRead(GlueInfo, 0x00, &RegValChip);
-                kalDevRegRead(GlueInfo, 0x04, &RegValLP);
-                if ((RegValChip != 0) && (RegValLP == 0))
-                {
-                    /* HIF clock & CONNSYS is powered on but own fails */
-                    /* for the case we just printk kernel error message */
-                    printk("<WLANRXERR><vend_samp.lin> 0x%x 0x%x 0x%x\n",
-                        *(volatile unsigned int *)0xF0000024,
-                        (UINT_32)RegValChip, (UINT_32)RegValLP);
-                    return TRUE;
-                }
-                printk("<WLANRXERR><vend_samp.lin> 0x%x 0x%x 0x%x\n",
-                    *(volatile unsigned int *)0xF0000024,
-                    (UINT_32)RegValChip, (UINT_32)RegValLP);
 
 #if 0
                 mtk_wcn_wmt_assert();
@@ -1689,7 +1683,14 @@ if (testgdmaclock == 1)
 
 				printk("DMA LoopCnt > 100000... (%lu %lu)\n", jiffies, PollTimeout);
 //LabelErr:
-                HifRegDump(GlueInfo->prAdapter);
+				{
+					UINT_32 uwcir = 0;
+					UINT_32 uwhlpcr = 0;
+
+					uwcir = (UINT_32)HIF_REG_READL(HifInfo, MCR_WCIR);
+					uwhlpcr = (UINT_32)HIF_REG_READL(HifInfo, MCR_WHLPCR);
+					printk("addr MCR_WCIR is %u, addr MCR_WHLPCR is %u\n", uwcir, uwhlpcr);
+				}
                 if (HifInfo->DmaOps->DmaRegDump != NULL)
                     HifInfo->DmaOps->DmaRegDump(HifInfo);
                 LoopCnt = 0;

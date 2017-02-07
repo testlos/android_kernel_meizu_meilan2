@@ -153,3 +153,7 @@ obj-$(CONFIG_VME_BUS)		+= vme/
 obj-$(CONFIG_IPACK_BUS)		+= ipack/
 obj-$(CONFIG_NTB)		+= ntb/
 obj-$(CONFIG_ANDROID)		+= android/
+
+#dixiaobing@wind-mobi.com 20150617 start
+obj-y				+= meizu/
+#dixiaobing@wind-mobi.com 20150617 end

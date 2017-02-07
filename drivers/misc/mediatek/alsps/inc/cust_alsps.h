@@ -9,7 +9,7 @@
 #define MAX_THRESHOLD_HIGH 0xffff
 #define MIN_THRESHOLD_LOW 0x0
 
-struct alsps_hw {
+struct cus_alsps_hw {
     int i2c_num;                                    /*!< the i2c bus used by ALS/PS */
     int power_id;                                   /*!< the VDD power id of the als chip */
     int power_vol;                                  /*!< the VDD power voltage of the als chip */
@@ -36,8 +36,8 @@ struct alsps_hw {
     bool is_batch_supported_als;
 };
 
-extern struct alsps_hw* get_cust_alsps_hw(void);
+extern struct cus_alsps_hw* get_cust_alsps_hw(void);
 
- struct alsps_hw* get_alsps_dts_func(const char *, struct alsps_hw*);
+ struct cus_alsps_hw* get_alsps_dts_func(const char *, struct cus_alsps_hw*);
 __weak int pmic_ldo_suspend_enable(int enable);
 #endif

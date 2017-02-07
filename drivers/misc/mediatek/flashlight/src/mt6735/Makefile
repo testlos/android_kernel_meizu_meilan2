@@ -12,6 +12,9 @@ obj-y				+= sub_strobe.o
 obj-y				+= strobe_main_sid1_part2.o
 obj-y				+= strobe_part_id.o
 obj-y				+= strobe_sub_sid1_part2.o
+# liukun wind 20150513 begin
+obj-y				+= flash_troch.o
+# liukun wind 20150513 end
 
 ifeq ($(wildcard $(srctree)/drivers/misc/mediatek/mach/$(MTK_PLATFORM)/$(ARCH_MTK_PROJECT)/flashlight/strobe_main_sid2_part1.c),)
 obj-y				+= strobe_main_sid2_part1.o

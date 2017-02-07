@@ -85,7 +85,7 @@ struct acc_hw * get_accel_dts_func(const char *name, struct acc_hw *hw)
     }
 
 
-struct alsps_hw * get_alsps_dts_func(const char *name, struct alsps_hw *hw)
+struct cus_alsps_hw * get_alsps_dts_func(const char *name, struct cus_alsps_hw *hw)
 {
     int i,ret;
     u32 i2c_num[] = {0};

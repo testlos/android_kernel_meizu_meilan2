@@ -56,15 +56,7 @@ typedef struct {
 #define COMPAT_GSENSOR_IOCTL_SET_CALI				_IOW(GSENSOR, 0x06, SENSOR_DATA)
 #define COMPAT_GSENSOR_IOCTL_GET_CALI				_IOW(GSENSOR, 0x07, SENSOR_DATA)
 #define COMPAT_GSENSOR_IOCTL_CLR_CALI				_IO(GSENSOR, 0x08)
-#define COMPAT_GSENSOR_IOCTL_INIT                  _IO(GSENSOR,  0x01)
-#define COMPAT_GSENSOR_IOCTL_READ_CHIPINFO			_IOR(GSENSOR, 0x02, compat_int_t)
 #define COMPAT_GSENSOR_IOCTL_READ_SENSORDATA       _IOR(GSENSOR, 0x03, compat_int_t)
-#define COMPAT_GSENSOR_IOCTL_READ_OFFSET			_IOR(GSENSOR, 0x04, GSENSOR_VECTOR3D)
-#define COMPAT_GSENSOR_IOCTL_READ_GAIN				_IOR(GSENSOR, 0x05, GSENSOR_VECTOR3D)
-#define COMPAT_GSENSOR_IOCTL_READ_RAW_DATA			_IOR(GSENSOR, 0x06, compat_int_t)
-#define COMPAT_GSENSOR_IOCTL_SET_CALI				_IOW(GSENSOR, 0x07, SENSOR_DATA)
-#define COMPAT_GSENSOR_IOCTL_GET_CALI				_IOW(GSENSOR, 0x08, SENSOR_DATA)
-#define COMPAT_GSENSOR_IOCTL_CLR_CALI				_IO(GSENSOR, 0x09)
 #endif
 /* mCube add start */
 /* G-sensor */
@@ -80,19 +72,6 @@ typedef struct {
 #define GSENSOR_MCUBE_IOCTL_VIRTUAL_Z          _IOR(GSENSOR, 0x11, int)
 #define GSENSOR_MCUBE_IOCTL_READ_PCODE         _IOR(GSENSOR, 0x12, char)
 #define	GSENSOR_MCUBE_IOCTL_GET_OFLAG          _IOR(GSENSOR, 0x13, short)
-#ifdef CONFIG_COMPAT
-#define COMPAT_GSENSOR_MCUBE_IOCTL_READ_RBM_DATA      _IOR(GSENSOR, 0x09, SENSOR_DATA)
-#define COMPAT_GSENSOR_MCUBE_IOCTL_SET_RBM_MODE       _IO(GSENSOR, 0x0a)
-#define COMPAT_GSENSOR_MCUBE_IOCTL_CLEAR_RBM_MODE     _IO(GSENSOR, 0x0b)
-#define COMPAT_GSENSOR_MCUBE_IOCTL_SET_CALI           _IOW(GSENSOR, 0x0c, SENSOR_DATA)
-#define COMPAT_GSENSOR_MCUBE_IOCTL_REGISTER_MAP       _IO(GSENSOR, 0x0d)
-#define COMPAT_GSENSOR_IOCTL_SET_CALI_MODE            _IOW(GSENSOR, 0x0e, compat_int_t)
-#define COMPAT_GSENSOR_MCUBE_IOCTL_READ_PRODUCT_ID    _IOR(GSENSOR, 0x0f, compat_int_t)
-#define COMPAT_GSENSOR_MCUBE_IOCTL_READ_FILEPATH      _IOR(GSENSOR, 0x10, char[256])
-#define COMPAT_GSENSOR_MCUBE_IOCTL_VIRTUAL_Z          _IOR(GSENSOR, 0x11, compat_int_t)
-#define COMPAT_GSENSOR_MCUBE_IOCTL_READ_PCODE         _IOR(GSENSOR, 0x12, char)
-#define	COMPAT_GSENSOR_MCUBE_IOCTL_GET_OFLAG          _IOR(GSENSOR, 0x13, compat_short_t)
-#endif
 
 
 /* IOCTLs for Msensor misc. device library */
@@ -159,12 +138,20 @@ typedef struct {
 #define MMC31XX_IOC_RESET				_IO(MSENSOR, 0x1a)
 #define MMC31XX_IOC_READ				_IOR(MSENSOR, 0x1b, int[3])
 #define MMC31XX_IOC_READXYZ				_IOR(MSENSOR, 0x1c, int[3])
+/*dixiaobing@wind-mobi.com 20150702 start*/
+#define MMC3524X_IOC_READ_REG		    _IOWR(MSENSOR, 0x23, unsigned char)
+#define MMC3524X_IOC_WRITE_REG		    _IOW(MSENSOR,  0x24, unsigned char[2])
+#define MMC3524X_IOC_READ_REGS		    _IOWR(MSENSOR, 0x25, unsigned char[10])
+/*dixiaobing@wind-mobi.com 20150702 end*/
 
 #define ECOMPASS_IOC_GET_DELAY			_IOR(MSENSOR, 0x1d, int)
 #define ECOMPASS_IOC_GET_MFLAG			_IOR(MSENSOR, 0x1e, short)
 #define	ECOMPASS_IOC_GET_OFLAG			_IOR(MSENSOR, 0x1f, short)
 #define ECOMPASS_IOC_GET_OPEN_STATUS	_IOR(MSENSOR, 0x20, int)
-#define ECOMPASS_IOC_SET_YPR			_IOW(MSENSOR, 0x21, int[12])
+/*dixiaobing@wind-mobi.com 20150702 start*/
+#define ECOMPASS_IOC_SET_YPR			_IOW(MSENSOR, 0x21, int[28])
+/*dixiaobing@wind-mobi.com 20150702 end*/
+
 #define ECOMPASS_IOC_GET_LAYOUT			_IOR(MSENSOR, 0X22, int)
 
 #ifdef CONFIG_COMPAT
@@ -187,7 +174,11 @@ typedef struct {
 #define COMPAT_ECS_IOCTL_GET_ACCEL		       _IOR(MSENSOR, 0x24, compat_short_t[3])
 #define COMPAT_MMC31XX_IOC_RM				   _IO(MSENSOR, 0x25)
 #define COMPAT_MMC31XX_IOC_RRM				   _IO(MSENSOR, 0x26)
-
+/*dixiaobing@wind-mobi.com 20150702 start*/
+#define COMPAT_MMC3524X_IOC_READ_REG		    _IOWR(MSENSOR, 0x23, unsigned char)
+#define COMPAT_MMC3524X_IOC_WRITE_REG		    _IOW(MSENSOR,  0x24, unsigned char[2])
+#define COMPAT_MMC3524X_IOC_READ_REGS		    _IOWR(MSENSOR, 0x25, unsigned char[10])
+/*dixiaobing@wind-mobi.com 20150702 end*/
 /*COMPAT IOCTLs for akm09911 device */
 #define COMPAT_ECS_IOCTL_GET_INFO			   _IOR(MSENSOR, 0x27, unsigned char[AKM_SENSOR_INFO_SIZE])
 #define COMPAT_ECS_IOCTL_GET_CONF			   _IOR(MSENSOR, 0x28, unsigned char[AKM_SENSOR_CONF_SIZE])
@@ -206,34 +197,23 @@ typedef struct {
 #define COMPAT_ECOMPASS_IOC_GET_MFLAG		   _IOR(MSENSOR, 0x1e, compat_short_t)
 #define	COMPAT_ECOMPASS_IOC_GET_OFLAG		   _IOR(MSENSOR, 0x1f, compat_short_t)
 #define COMPAT_ECOMPASS_IOC_GET_OPEN_STATUS	   _IOR(MSENSOR, 0x20, compat_int_t)
-#define COMPAT_ECOMPASS_IOC_SET_YPR			   _IOW(MSENSOR, 0x21, compat_int_t[12])
+#define COMPAT_ECOMPASS_IOC_SET_YPR			   _IOW(MSENSOR, 0x21, compat_int_t[28])   //zhangaifeng@wind-mobi.com 20150105 modify
 #define COMPAT_ECOMPASS_IOC_GET_LAYOUT		   _IOR(MSENSOR, 0X22, compat_int_t)
 #endif
+/*dixiaobing@wind-mobi.com 20150702 start*/
+/*IOCTLs for QST X983*/
 #define QMC_IOCTL_WRITE                 _IOW(MSENSOR, 0x40, char*)
 #define QMC_IOCTL_READ                  _IOWR(MSENSOR, 0x41, char*)
-#define QMC_IOCTL_RESET              	_IO(MSENSOR, 0x42)
+#define QMC_IOCTL_RESET      	        _IO(MSENSOR, 0x42)
 #define QMC_IOCTL_SET_MODE              _IOW(MSENSOR, 0x43, short)
 #define QMC_IOCTL_GETDATA               _IOR(MSENSOR, 0x44, char[SENSOR_DATA_SIZE])
 #define QMC_IOCTL_SET_YPR               _IOW(MSENSOR, 0x45, short[28])
 #define QMC_IOCTL_GET_OPEN_STATUS       _IOR(MSENSOR, 0x46, int)
 #define QMC_IOCTL_GET_CLOSE_STATUS      _IOR(MSENSOR, 0x47, int)
-#define QMC_IOC_GET_MFLAG               _IOR(MSENSOR, 0x48, int)
-#define QMC_IOC_GET_OFLAG               _IOR(MSENSOR, 0x49, int)
+#define QMC_IOC_GET_MFLAG			    _IOR(MSENSOR, 0x48, int)
+#define QMC_IOC_GET_OFLAG				_IOR(MSENSOR, 0x49, int)
 #define QMC_IOCTL_GET_DELAY             _IOR(MSENSOR, 0x4a, short)
-#ifdef CONFIG_COMPAT
-#define COMPAT_QMC_IOCTL_WRITE                 _IOW(MSENSOR, 0x40, compat_uptr_t)
-#define COMPAT_QMC_IOCTL_READ                  _IOWR(MSENSOR, 0x41, compat_uptr_t)
-#define COMPAT_QMC_IOCTL_RESET              	_IO(MSENSOR, 0x42)
-#define COMPAT_QMC_IOCTL_SET_MODE              _IOW(MSENSOR, 0x43, compat_short_t)
-#define COMPAT_QMC_IOCTL_GETDATA               _IOR(MSENSOR, 0x44, char[SENSOR_DATA_SIZE])
-#define COMPAT_QMC_IOCTL_SET_YPR               _IOW(MSENSOR, 0x45, compat_short_t[28])
-#define COMPAT_QMC_IOCTL_GET_OPEN_STATUS       _IOR(MSENSOR, 0x46, compat_int_t)
-#define COMPAT_QMC_IOCTL_GET_CLOSE_STATUS      _IOR(MSENSOR, 0x47, compat_int_t)
-#define COMPAT_QMC_IOC_GET_MFLAG               _IOR(MSENSOR, 0x48, compat_int_t)
-#define COMPAT_QMC_IOC_GET_OFLAG               _IOR(MSENSOR, 0x49, compat_int_t)
-#define COMPAT_QMC_IOCTL_GET_DELAY             _IOR(MSENSOR, 0x4a, compat_short_t)
-#endif
-
+/*dixiaobing@wind-mobi.com 20150702 end*/
 
 #define ALSPS							0X84
 #define ALSPS_SET_PS_MODE				_IOW(ALSPS, 0x01, int)

@@ -94,6 +94,18 @@
 #endif
 
 
+/**modify yudengwu2015-01-08**/
+//gemingming@wind-mobi.com close cpu freq 20150603 begin 
+//#define M_CUSTOM_REQUITEMENT
+//gemingming@wind-mobi.com close cpu freq 20150603 end
+
+#ifdef M_CUSTOM_REQUITEMENT
+
+char *power_type = "NULL";
+static int _mt_cpufreq_create_sysfs(void);
+#endif
+/**modify yudengwu2015-01-08**/
+
 /* Operations and REG Access */
 #define MAX(a, b)                           ((a) >= (b) ? (a) : (b))
 #define MIN(a, b)                           ((a) >= (b) ? (b) : (a))
@@ -839,28 +851,10 @@ bool is_in_cpufreq = 0;     // used in MCDI
 /* cpu voltage sampler */
 static cpuVoltsampler_func g_pCpuVoltSampler = NULL;
 
-/* for PMIC 5A throttle */
-#ifdef CONFIG_ARCH_MT6753
-static bool pmic_5A_throttle_enable;
-static bool pmic_5A_throttle_on;
-#endif
 
 /*=============================================================*/
 /* Function Implementation                                     */
 /*=============================================================*/
-#ifdef CONFIG_ARCH_MT6753
-static bool is_need_5A_throttle(struct mt_cpu_dvfs *p, unsigned int cur_freq, unsigned int cur_core_num)
-{
-    if (pmic_5A_throttle_enable && pmic_5A_throttle_on
-        && (cur_core_num > PMIC_5A_THRO_MAX_CPU_CORE_NUM)
-        && (cur_freq > PMIC_5A_THRO_MAX_CPU_FREQ)) {
-        return true;
-    }
-
-    return false;
-}
-#endif
-
 static struct mt_cpu_dvfs *id_to_cpu_dvfs(enum mt_cpu_dvfs_id id)
 {
     return (id < NR_MT_CPU_DVFS) ? &cpu_dvfs[id] : NULL;
@@ -1291,9 +1285,13 @@ static int _mt_cpufreq_set_limit_by_pwr_budget(unsigned int budget)
 	for (ncpu = possible_cpu; ncpu > 0; ncpu--) {
 		for (i = 0; i < p->nr_opp_tbl * possible_cpu; i++) {
 #ifdef CONFIG_ARCH_MT6753
-			if (is_need_5A_throttle(p, p->power_tbl[i].cpufreq_khz,
-                                                p->power_tbl[i].cpufreq_ncpu))
+			if ((p->cpu_level == CPU_LEVEL_1)
+				&& !cpu_dvfs_is_extbuck_valid()
+				&& (p->power_tbl[i].cpufreq_ncpu > PMIC_5A_THRO_MAX_CPU_CORE_NUM)
+				&& (p->power_tbl[i].cpufreq_khz > PMIC_5A_THRO_MAX_CPU_FREQ)
+			) {
 				continue;
+			}
 #endif
 			if (p->power_tbl[i].cpufreq_power <= budget) {
 				p->limited_power_idx = i;
@@ -2499,8 +2497,6 @@ static int _mt_cpufreq_get_idx_by_freq(struct mt_cpu_dvfs *p, unsigned int targe
     return new_opp_idx;
 }
 
-static bool is_limit_modified_by_5A_throttle = false;
-
 static int _mt_cpufreq_power_limited_verify(struct mt_cpu_dvfs *p, int new_opp_idx)
 {
     unsigned int target_khz = cpu_dvfs_get_freq_by_idx(p, new_opp_idx);
@@ -2524,39 +2520,17 @@ static int _mt_cpufreq_power_limited_verify(struct mt_cpu_dvfs *p, int new_opp_i
 #endif
         return new_opp_idx;
 
+    i = p->limited_power_idx;
+
 #ifdef CONFIG_ARCH_MT6753
-        if (is_need_5A_throttle(p, p->limited_max_freq, p->limited_max_ncpu)) {
-		cpufreq_dbg("@%s: modify limited max freq and ncpu due to 5A limit enabled!\n", __func__);
-		p->limited_max_freq = PMIC_5A_THRO_MAX_CPU_FREQ;
-		p->limited_max_ncpu = possible_cpu;
-		p->limited_power_idx = 3;
-		is_limit_modified_by_5A_throttle = true;
-	} else if (is_limit_modified_by_5A_throttle) {
-		/* re-calculate limit */
-#ifndef DISABLE_PBM_FEATURE
-		if (p->limited_power_by_pbm && p->limited_power_by_thermal)
-			_mt_cpufreq_set_limit_by_pwr_budget(MIN(p->limited_power_by_pbm, p->limited_power_by_thermal));
-		else if (p->limited_power_by_pbm)
-			_mt_cpufreq_set_limit_by_pwr_budget(p->limited_power_by_pbm);
-		else if (p->limited_power_by_thermal)
-			_mt_cpufreq_set_limit_by_pwr_budget(p->limited_power_by_thermal);
-		else {
-			/* unlimit */
-			p->limited_max_freq = cpu_dvfs_get_max_freq(p);
-			p->limited_max_ncpu = possible_cpu;
-			p->limited_power_idx = 0;
-		}
-#else
-		if (p->limited_power_by_thermal)
-			_mt_cpufreq_set_limit_by_pwr_budget(p->limited_power_by_thermal);
-		else {
-			/* unlimit */
-			p->limited_max_freq = cpu_dvfs_get_max_freq(p);
-			p->limited_max_ncpu = possible_cpu;
-			p->limited_power_idx = 0;
-		}
-#endif
-		is_limit_modified_by_5A_throttle = false;
+	if ((p->cpu_level == CPU_LEVEL_1)
+		&& !cpu_dvfs_is_extbuck_valid()
+		&& (p->limited_max_ncpu > PMIC_5A_THRO_MAX_CPU_CORE_NUM)
+		&& (p->limited_max_freq > PMIC_5A_THRO_MAX_CPU_FREQ)
+	) {
+		cpufreq_err("@%s: Unsafe CPU core / freq limit combination!\n", __func__);
+		cpufreq_err("limited_max_ncpu = %d, limited_max_freq = %d\n", p->limited_max_ncpu, p->limited_max_freq);
+		BUG();
 	}
 #endif
 
@@ -2670,8 +2644,10 @@ static unsigned int _mt_cpufreq_calc_new_opp_idx(struct mt_cpu_dvfs *p, int new_
     }
 
 #ifdef CONFIG_ARCH_MT6753
-        if (is_need_5A_throttle(p, cpu_dvfs_get_freq_by_idx(p, new_opp_idx),
-                                num_online_cpus() + num_online_cpus_delta)) {
+	if (p->cpu_level == CPU_LEVEL_1
+		&& !cpu_dvfs_is_extbuck_valid()
+		&& (num_online_cpus() + num_online_cpus_delta > PMIC_5A_THRO_MAX_CPU_CORE_NUM)
+	) {
 		idx = _mt_cpufreq_get_idx_by_freq(p, PMIC_5A_THRO_MAX_CPU_FREQ, CPUFREQ_RELATION_H);
 
 		if (idx != -1 && new_opp_idx < idx) {
@@ -2698,6 +2674,8 @@ static void _mt_cpufreq_set(enum mt_cpu_dvfs_id id, int new_opp_idx)
 #ifdef CONFIG_CPU_FREQ
     struct cpufreq_policy *policy;
 #endif
+
+//	printk("[darren] new_opp_idx = %d\n",new_opp_idx);
 
     FUNC_ENTER(FUNC_LV_LOCAL);
 
@@ -2727,6 +2705,8 @@ static void _mt_cpufreq_set(enum mt_cpu_dvfs_id id, int new_opp_idx)
     _mt_cpufreq_set_locked(p, cur_freq, target_freq, NULL);
 #endif
     p->idx_opp_tbl = new_opp_idx;
+
+//	printk("[darren]   p->idx_opp_tbl  = %d\n",  p->idx_opp_tbl );
 
     cpufreq_unlock(flags);	// <-XXX
 
@@ -3172,25 +3152,6 @@ no_policy:
 }
 EXPORT_SYMBOL(mt_cpufreq_thermal_protect);
 
-void mt_cpufreq_thermal_5A_limit(bool enable)
-{
-    struct mt_cpu_dvfs *p = id_to_cpu_dvfs(MT_CPU_DVFS_LITTLE);
-
-    FUNC_ENTER(FUNC_LV_API);
-
-    cpufreq_info("%s(): PMIC 5A limit = %d\n", __func__, enable);
-
-#ifdef CONFIG_ARCH_MT6753
-    pmic_5A_throttle_on = enable;
-
-    if (cpu_dvfs_is_availiable(p))
-        _mt_cpufreq_set(MT_CPU_DVFS_LITTLE, -1);
-#endif
-
-    FUNC_EXIT(FUNC_LV_API);
-}
-EXPORT_SYMBOL(mt_cpufreq_thermal_5A_limit);
-
 #ifdef CONFIG_CPU_FREQ_GOV_HOTPLUG
 /* for ramp down */
 void mt_cpufreq_set_ramp_down_count_const(enum mt_cpu_dvfs_id id, int count)
@@ -3519,14 +3480,6 @@ static int _mt_cpufreq_init(struct cpufreq_policy *policy)
 
         p->cpu_level = lv;
 
-#ifdef CONFIG_ARCH_MT6753
-	/* check 5A throttle */
-	if (p->cpu_level == CPU_LEVEL_1 && !cpu_dvfs_is_extbuck_valid()) {
-		pmic_5A_throttle_enable = true;
-		cpufreq_info("@%s: PMIC 5A throttle enabled!\n", __func__);
-	}
-#endif
-
 #ifndef CONFIG_CPU_DVFS_HAS_EXTBUCK
         // make sure Vproc & Vsram in normal mode path
         pmic_set_register_value(PMIC_VPROC_VOSEL_CTRL, 0x1);
@@ -3844,6 +3797,16 @@ static int _mt_cpufreq_pdrv_remove(struct platform_device *pdev)
 }
 
 
+//yudengwu
+#ifdef M_CUSTOM_REQUITEMENT
+unsigned int dvfs_get_cur_oppidx(enum mt_cpu_dvfs_id id)
+{
+    struct mt_cpu_dvfs *p = id_to_cpu_dvfs(id);
+
+    return p->idx_opp_tbl;
+}
+#endif
+//yudengwu
 #ifndef __KERNEL__
 /*
  * For CTP
@@ -4442,37 +4405,6 @@ static ssize_t cpufreq_limited_by_thermal_proc_write(struct file *file, const ch
     return count;
 }
 
-/* PMIC 5A limit */
-#ifdef CONFIG_ARCH_MT6753
-static int cpufreq_5A_throttle_enable_proc_show(struct seq_file *m, void *v)
-{
-    seq_printf(m, "cpufreq PMIC 5A throttle enable = %d\n", pmic_5A_throttle_enable);
-    seq_printf(m, "cpufreq PMIC 5A throttle on/off = %d\n", pmic_5A_throttle_on);
-
-    return 0;
-}
-
-static ssize_t cpufreq_5A_throttle_enable_proc_write(struct file *file, const char __user *buffer, size_t count, loff_t *pos)
-{
-    unsigned int enable;
-
-    char *buf = _copy_from_user_for_proc(buffer, count);
-
-    if (!buf)
-        return -EINVAL;
-
-    if (sscanf(buf, "%d", &enable) == 1) {
-        pmic_5A_throttle_enable = enable;
-        _mt_cpufreq_set(MT_CPU_DVFS_LITTLE, -1);
-    }
-    else
-        cpufreq_err("echo 1/0 > /proc/cpufreq/cpufreq_5A_throttle_enable\n");
-
-    free_page((unsigned long)buf);
-    return count;
-}
-#endif
-
 /* cpufreq_limited_max_freq_by_user */
 static int cpufreq_limited_max_freq_by_user_proc_show(struct seq_file *m, void *v)
 {
@@ -4702,7 +4634,11 @@ static ssize_t cpufreq_freq_proc_write(struct file *file, const char __user *buf
 				cur_freq = p->ops->get_cur_phy_freq(p);
 				if (freq != cur_freq) {
 #ifdef CONFIG_ARCH_MT6753
-					if (is_need_5A_throttle(p, freq, num_online_cpus() + num_online_cpus_delta)) {
+					if (p->cpu_level == CPU_LEVEL_1
+						&& !cpu_dvfs_is_extbuck_valid()
+						&& (freq > PMIC_5A_THRO_MAX_CPU_FREQ)
+						&& ((num_online_cpus() + num_online_cpus_delta)
+							> PMIC_5A_THRO_MAX_CPU_CORE_NUM)) {
 						cpufreq_warn("@%s: frequency %dKHz over 5A limit!\n", __func__, freq);
 						p->ops->set_cur_freq(p, cur_freq, PMIC_5A_THRO_MAX_CPU_FREQ);
 					} else
@@ -4865,9 +4801,6 @@ PROC_FOPS_RW(cpufreq_limited_by_hevc);
 PROC_FOPS_RW(cpufreq_limited_by_pbm);
 #endif
 PROC_FOPS_RW(cpufreq_limited_by_thermal);
-#ifdef CONFIG_ARCH_MT6753
-PROC_FOPS_RW(cpufreq_5A_throttle_enable);
-#endif
 PROC_FOPS_RW(cpufreq_limited_max_freq_by_user);
 PROC_FOPS_RO(cpufreq_power_dump);
 PROC_FOPS_RO(cpufreq_ptpod_freq_volt);
@@ -4897,9 +4830,6 @@ static int _mt_cpufreq_create_procfs(void)
         PROC_ENTRY(cpufreq_stress_test),
         PROC_ENTRY(cpufreq_fix_freq_in_es),
         PROC_ENTRY(cpufreq_limited_by_thermal),
-#ifdef CONFIG_ARCH_MT6753
-        PROC_ENTRY(cpufreq_5A_throttle_enable),
-#endif
 #ifndef DISABLE_PBM_FEATURE
         PROC_ENTRY(cpufreq_limited_by_pbm),
 #endif
@@ -4940,6 +4870,97 @@ static int _mt_cpufreq_create_procfs(void)
 }
 #endif /* CONFIG_PROC_FS */
 
+/**modify yudengwu2015-01-08**/
+#ifdef M_CUSTOM_REQUITEMENT
+static ssize_t power_control_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{	
+	unsigned int idx1 = 0;
+
+	struct mt_cpu_dvfs *pow = id_to_cpu_dvfs(MT_CPU_DVFS_LITTLE);
+	
+	printk("[darren]--------------show\n");
+
+	idx1 = dvfs_get_cur_oppidx(MT_CPU_DVFS_LITTLE);	
+
+	return sprintf(buf, " power type = %s\ncpufreq_oppidx = %d\n\tOP(%d, %d),\n", power_type,idx1,
+				cpu_dvfs_get_freq_by_idx(pow, idx1),
+               		cpu_dvfs_get_volt_by_idx(pow, idx1));
+}
+
+
+static ssize_t power_control_store(struct device *dev,
+			      struct device_attribute *attr,
+			      const char *buf, size_t size)
+{
+	int i =0;
+	printk("[darren]--------------store\n");
+
+	int oppidx;
+	
+	struct mt_cpu_dvfs *pow = id_to_cpu_dvfs(MT_CPU_DVFS_LITTLE);
+
+	sscanf(buf, "%s", power_type); 
+
+	if((strcmp(power_type,"low")) == 0)
+	{
+		oppidx = 6;
+	}
+	else if((strcmp(power_type,"high")) == 0)
+	{
+		oppidx = 1;
+	}
+	else if((strcmp(power_type,"normal")) == 0)
+	{
+		oppidx = 4;
+	}
+	else
+	{
+		power_type = "unknow type";
+		return size;
+	}
+
+//	printk("[darren --oppidx = %d, pow->nr_opp_tbl = %d\n]",oppidx,pow->nr_opp_tbl);
+	
+	  if( 0 <= oppidx && oppidx < pow->nr_opp_tbl ) 
+       {
+	        pow->dvfs_disable_by_procfs = true;
+	        _mt_cpufreq_set(MT_CPU_DVFS_LITTLE, oppidx);
+    	} 
+	 else 
+	 {
+	        pow->dvfs_disable_by_procfs = false;
+	        cpufreq_err("echo oppidx > /proc/cpufreq/cpufreq_oppidx (0 <= %d < %d)\n", oppidx, pow->nr_opp_tbl);
+    }
+	return size;
+}
+
+
+static DEVICE_ATTR(power_mode, 0666, power_control_show, power_control_store);
+
+static struct attribute *sysfs_attrs_ctrl[] = {
+	&dev_attr_power_mode.attr,
+	NULL,
+};
+static struct attribute_group power_attribute_group[] = {
+	{.attrs = sysfs_attrs_ctrl },
+};
+
+static int _mt_cpufreq_create_sysfs(void)
+{
+	int ret;
+
+	ret = sysfs_create_group(power_kobj, power_attribute_group);
+	if (ret < 0) {
+		printk(KERN_ERR "[power]%s: sysfs_create_group failed\n", __func__);
+	}
+
+	return 0;
+}
+#endif
+/**modify yudengwu2015-01-08**/
+
+
 /*
  * Module driver
  */
@@ -4954,6 +4975,9 @@ static int __init _mt_cpufreq_pdrv_init(void)
     if (_mt_cpufreq_create_procfs())
         goto out;
 #endif /* CONFIG_PROC_FS */
+#ifdef M_CUSTOM_REQUITEMENT
+	_mt_cpufreq_create_sysfs();   //modify yudengwu
+#endif
 
     /* register platform device/driver */
     ret = platform_device_register(&_mt_cpufreq_pdev);
@@ -4980,6 +5004,9 @@ static void __exit _mt_cpufreq_pdrv_exit(void)
 
     platform_driver_unregister(&_mt_cpufreq_pdrv);
     platform_device_unregister(&_mt_cpufreq_pdev);
+#ifdef M_CUSTOM_REQUITEMENT
+    sysfs_remove_group(power_kobj, power_attribute_group);   //modify yudengwu 
+#endif
 
     FUNC_EXIT(FUNC_LV_MODULE);
 }

@@ -18,5 +18,6 @@ struct acc_hw {
 };
 
 extern struct acc_hw *get_cust_acc_hw(void);
-struct acc_hw* get_accel_dts_func(const char *, struct acc_hw*);
+extern struct acc_hw* lis3dh_get_cust_acc_hw(void);
+extern struct acc_hw* kxtj2_1009_get_cust_acc_hw(void); //wenggaojian@wind-mobi.com
 #endif

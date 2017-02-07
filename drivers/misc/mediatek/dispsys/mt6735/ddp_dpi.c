@@ -1,5 +1,6 @@
 #ifdef BUILD_UBOOT
 #define ENABLE_DSI_INTERRUPT 0 
+
 #include <asm/arch/disp_drv_platform.h>
 #else
 #include <linux/delay.h>

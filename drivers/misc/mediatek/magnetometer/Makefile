@@ -8,6 +8,18 @@ ifeq ($(CONFIG_MTK_AKM8963_NEW),y)
 obj-y	+=  akm8963-new/
 endif
 
+ifeq ($(CONFIG_MTK_MMC3416X),y)
+obj-y	+=  mmc3416x/
+endif
+
+ifeq ($(CONFIG_MTK_MMC3524X),y)
+obj-y	+=  mmc3524x/
+endif
+
+ifeq ($(CONFIG_MTK_ist8303),y)
+obj-y	+=  ist8303/
+endif
+
 ifeq ($(CONFIG_MTK_BMM050_NEW),y)
 obj-y	+=  bmm050-new/
 endif
@@ -34,6 +46,10 @@ ifeq ($(CONFIG_MTK_AKM09911),y)
 obj-y   +=  akm09911/
 endif
 
+ifeq ($(CONFIG_MTK_QMCX983),y)
+obj-y   +=  qmcX983/
+endif
+
 ifeq ($(CONFIG_MTK_AKM09911_NEW),y)
 obj-y   +=  akm09911-new/
 endif
@@ -48,16 +64,4 @@ endif
 
 ifeq ($(CONFIG_MTK_ST480),y)
 obj-y   +=  st480/
-endif
-
-ifeq ($(CONFIG_MTK_MMC3524X),y)
-obj-y   +=  mmc3524x/
-endif
-
-ifeq ($(CONFIG_MTK_MC64XX),y)
-obj-y   +=  mc64xx/
-endif
-
-ifeq ($(CONFIG_MTK_MC6470),y)
-obj-y   +=  mc6470/
 endif

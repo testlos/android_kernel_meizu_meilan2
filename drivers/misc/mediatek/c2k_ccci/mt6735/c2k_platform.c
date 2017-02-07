@@ -61,10 +61,27 @@ extern void mtk_wdt_set_c2k_sysrst(unsigned int flag);
 #define MPU_REGION_ID_C2K_RW        8
 #define MPU_REGION_ID_C2K_SMEM      10
 
+/**
+*
+*--C2K memory layout--
+*
+*--0x00AFFFFF  _ _ _ _ _ _ _ _ 
+*             | share mem      |
+*--0x00A00000 |_ _ _ _ _ _ _ _ |
+*             | RAM top        |
+*--0x00500000 |_ _ _ _ _ _ _ _ |
+*             | ROM            |
+*--0x00180000 |_ _ _ _ _ _ _ _ |
+*             | RAM bottom     |
+*--0x00000000 |_ _ _ _ _ _ _ _ |
+*
+*--Warning: C2K side also need modify if layout changes !
+*
+**/
 #define MD3_ROM_SIZE				(0x380000)
 #define MD3_RAM_SIZE_BOTTOM			(0x180000)
 #define MD3_RAM_SIZE_TOP			(0x500000)
-#define MD3_SHARE_MEM_SIZE			(0x600000)
+#define MD3_SHARE_MEM_SIZE			(0x100000)
 
 #define AP_READY_BIT				(0x1 << 1)
 #define AP_WAKE_C2K_BIT				(0x1 << 0)
@@ -80,9 +97,14 @@ extern void mtk_wdt_set_c2k_sysrst(unsigned int flag);
 
 #ifdef CONFIG_OF_RESERVED_MEM
 #define CCCI_MD3_MEM_RESERVED_KEY "reserve-memory-ccci_md3"
-#define MD3_MEM_SIZE (16*1024*1024)
+/*C2K reserved memory: total size */
+#define MD3_MEM_RESERVED_SIZE (MD3_ROM_SIZE + MD3_RAM_SIZE_BOTTOM + MD3_RAM_SIZE_TOP + MD3_SHARE_MEM_SIZE)
+#define MD3_MEM_RAM_ROM		(MD3_ROM_SIZE + MD3_RAM_SIZE_BOTTOM + MD3_RAM_SIZE_TOP)
+
 phys_addr_t md3_mem_base;
 static unsigned long md3_mem_base_virt = 0;
+static unsigned int md3_share_mem_size;
+
 #define C2K_IMG_DUMP_SIZE 		(0x1000)
 #define C2K_IMG_DUMP_OFFSET		(0x61000)
 #define C2K_IRAM_DUMP_SIZE 		(0x200)
@@ -103,9 +125,11 @@ int modem_sdio_reserve_mem_of_init(struct reserved_mem * rmem, unsigned long nod
 	MTK_MEMCFG_LOG_AND_PRINTK(KERN_ALERT "%s,uname:%s,base:0x%llx,size:0x%x\n", __func__, rmem->name, (unsigned long long)rptr, rsize);
 
 	if(strcmp(uname, CCCI_MD3_MEM_RESERVED_KEY) == 0){
-		if(rsize != MD3_MEM_SIZE)	{
-			MTK_MEMCFG_LOG_AND_PRINTK(KERN_ERR "%s: reserve size=0x%x < 0x%x\n", __func__, rsize, MD3_MEM_SIZE);
+		if(rsize < MD3_MEM_RAM_ROM) {
+			MTK_MEMCFG_LOG_AND_PRINTK(KERN_ERR "%s: reserve size=0x%x < 0x%x\n", __func__, rsize, MD3_MEM_RAM_ROM);
 			return 0;
+		} else {
+			md3_share_mem_size = rsize - MD3_MEM_RAM_ROM;
 		}
 	}
 	md3_mem_base = rmem->base;
@@ -242,7 +266,7 @@ void set_c2k_mpu()
 	rom_mem_phy_end   = ((rom_mem_phy_start + MD3_ROM_SIZE + 0xFFFF)&(~0xFFFF)) - 0x1;
 	
 	shr_mem_phy_start = rw_mem_phy_end + 0x1;
-	shr_mem_phy_end   = ((shr_mem_phy_start + MD3_SHARE_MEM_SIZE + 0xFFFF)&(~0xFFFF)) - 0x1;
+	shr_mem_phy_end   = ((shr_mem_phy_start + md3_share_mem_size + 0xFFFF)&(~0xFFFF)) - 0x1;
 
 	printk("[C2K] MPU Start protect MD R/W region<%d:%08x:%08x> %x\n", 
 			rw_mem_mpu_id, rw_mem_phy_start, rw_mem_phy_end, rw_mem_mpu_attr);
@@ -376,9 +400,8 @@ void c2k_modem_power_on_platform(void)
 	
 	// step 6: wake up C2K
 	c2k_write32(infra_ao_base, INFRA_AO_C2K_SPM_CTRL, c2k_read32(infra_ao_base, INFRA_AO_C2K_SPM_CTRL)|0x1);
-	while(!((c2k_read32(infra_ao_base, INFRA_AO_C2K_STATUS)>>1)&0x1)) {
-		printk("[C2K] C2K_STATUS = 0x%x\n", c2k_read32(infra_ao_base, INFRA_AO_C2K_STATUS));
-	}
+	while(!((c2k_read32(infra_ao_base, INFRA_AO_C2K_STATUS)>>1)&0x1)) ;
+	printk("[C2K] C2K_STATUS = 0x%x\n", c2k_read32(infra_ao_base, INFRA_AO_C2K_STATUS));
 	c2k_write32(infra_ao_base, INFRA_AO_C2K_SPM_CTRL, c2k_read32(infra_ao_base, INFRA_AO_C2K_SPM_CTRL)&(~0x1));
 	printk("[C2K] C2K_SPM_CTRL = 0x%x, C2K_STATUS = 0x%x\n", 
 		c2k_read32(infra_ao_base, INFRA_AO_C2K_SPM_CTRL),
@@ -575,7 +598,7 @@ unsigned int get_c2k_wdt_irq_id()
 
 unsigned int get_c2k_reserve_mem_size()
 {
-	return MD3_MEM_SIZE;
+	return MD3_MEM_RAM_ROM + md3_share_mem_size;
 }
 
 char *get_ap_platform()

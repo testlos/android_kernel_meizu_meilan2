@@ -23,6 +23,11 @@ static long alsps_factory_unlocked_ioctl(struct file *file, unsigned int cmd, un
     //void __user *data;
     long err = 0;
 	struct alsps_context *cxt = alsps_context_obj;
+	/*dixiaobing@wind-mobi.com 20150629 start*/
+	#ifdef CONFIG_SENSOR_NON_WAKE_UP
+	struct alsals_context *alscxt = alsals_context_obj;
+	#endif
+	/*dixiaobing@wind-mobi.com 20150629 end*/
 	void __user *ptr = (void __user*) arg;
 	int dat;
 	uint32_t enable = 0;
@@ -87,8 +92,18 @@ static long alsps_factory_unlocked_ioctl(struct file *file, unsigned int cmd, un
 			break;
 		}
 		ALSPS_LOG("ALSPS_SET_ALS_MODE enable: %d!\n", enable);
-		
-		if(cxt->als_ctl.enable_nodata!= NULL){
+	/*dixiaobing@wind-mobi.com 20150629 start*/
+	#ifdef CONFIG_SENSOR_NON_WAKE_UP
+		if(alscxt->als_ctl.enable_nodata!= NULL){
+			err = alscxt->als_ctl.enable_nodata(enable);
+			if(err < 0)
+			{
+				ALSPS_LOG("ALSPS_SET_ALS_MODE fail!\n");
+				break;
+			}
+		}
+	#else
+	   if(cxt->als_ctl.enable_nodata!= NULL){
 			err = cxt->als_ctl.enable_nodata(enable);
 			if(err < 0)
 			{
@@ -96,9 +111,22 @@ static long alsps_factory_unlocked_ioctl(struct file *file, unsigned int cmd, un
 				break;
 			}
 		}
+	#endif
+	/*dixiaobing@wind-mobi.com 20150629 end*/
         break;
     case ALSPS_GET_ALS_RAW_DATA:
-		if(cxt->als_data.als_get_raw_data!= NULL){
+	/*dixiaobing@wind-mobi.com 20150629 start*/
+	#ifdef CONFIG_SENSOR_NON_WAKE_UP
+		if(alscxt->als_data.als_get_raw_data!= NULL){
+			err = alscxt->als_data.als_get_raw_data(&dat);
+			if(err < 0)
+			{
+				ALSPS_LOG("ALSPS_GET_ALS_RAW_DATA fail!\n");
+				break;
+			}
+		}
+    #else
+	    if(cxt->als_data.als_get_raw_data!= NULL){
 			err = cxt->als_data.als_get_raw_data(&dat);
 			if(err < 0)
 			{
@@ -106,7 +134,8 @@ static long alsps_factory_unlocked_ioctl(struct file *file, unsigned int cmd, un
 				break;
 			}
 		}
-
+	#endif
+	/*dixiaobing@wind-mobi.com 20150629 end*/
 		if(copy_to_user(ptr, &dat, sizeof(dat)))
 		{
 			err = -EFAULT;
@@ -249,10 +278,20 @@ int alsps_factory_device_init()
 {
 	int error = 0;
 	struct alsps_context *cxt = alsps_context_obj;
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+	struct alsals_context *alscxt = alsals_context_obj;
+	if (!alscxt->als_ctl.is_use_common_factory && !cxt->ps_ctl.is_use_common_factory) {
+		ALSPS_LOG("Node of '/dev/als_ps' has already existed!\n");
+		return -1;
+	}
+#else
 	if (!cxt->als_ctl.is_use_common_factory && !cxt->ps_ctl.is_use_common_factory) {
 		ALSPS_LOG("Node of '/dev/als_ps' has already existed!\n");
 		return -1;
 	}
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
     if ((error = misc_register(&alsps_factory_device)))
     {
         ALSPS_LOG("alsps_factory_device register failed\n");

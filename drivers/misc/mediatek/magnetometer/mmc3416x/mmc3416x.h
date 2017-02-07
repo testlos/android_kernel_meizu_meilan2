@@ -28,9 +28,9 @@
 #define MMC3416X_I2C_NAME		"mmc3416x"
 
 #define MMC3416X_I2C_ADDR		0x60
-
-#define CALIBRATION_DATA_SIZE	12
-
+//zhangaifeng@wind-mobi.com begin
+#define CALIBRATION_DATA_SIZE	16
+//zhangaifeng@wind-mobi.com end
 
 #define MMC3416X_REG_CTRL		0x07
 #define MMC3416X_REG_BITS		0x08

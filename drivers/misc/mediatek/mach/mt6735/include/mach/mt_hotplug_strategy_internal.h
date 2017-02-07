@@ -285,6 +285,9 @@ extern void hps_algo_smp(void);
  * mt_hotplug_strategy_procfs.c
  */
 extern int hps_procfs_init(void);
+//gemingming@wind-mobi.com cpu use info 20150603 begin 
+extern int hps_procfs_deinit(void);
+//gemingming@wind-mobi.com cpu use info 20150603 end
 
 /*
  * mt_hotplug_strategy_cpu.c

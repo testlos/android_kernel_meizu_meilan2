@@ -29,7 +29,11 @@
 #include <alsps.h>
 
 extern struct alsps_context *alsps_context_obj;
-
+/*dixiaobing@wind-mobi.com 20150629 start*/
+#ifdef CONFIG_SENSOR_NON_WAKE_UP
+extern struct alsals_context *alsals_context_obj;
+#endif
+/*dixiaobing@wind-mobi.com 20150629 end*/
 #define SETCALI 1
 #define CLRCALI 2
 #define GETCALI 3

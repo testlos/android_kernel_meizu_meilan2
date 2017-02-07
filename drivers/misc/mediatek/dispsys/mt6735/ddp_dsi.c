@@ -1115,7 +1115,7 @@ DSI_STATUS DSI_TXRX_Control(DISP_MODULE_ENUM module, cmdqRecHandle cmdq, LCM_DSI
 	bool null_packet_en = FALSE;
 	bool err_correction_en = FALSE;
 	bool dis_eotp_en = FALSE;
-	bool hstx_cklp_en = FALSE;
+	bool hstx_cklp_en = dsi_params->cont_clock?FALSE:TRUE;   //modify yudengwu@wind-mobi.com
 	int max_return_size = 0;
 
 	switch(lane_num)
@@ -2375,8 +2375,15 @@ static void lcm_udelay(UINT32 us)
 
 static void lcm_mdelay(UINT32 ms)
 {
-	// fixed wakeup lagg
-	udelay(ms*120);
+	if(ms < 10)
+	{
+		udelay(ms*1000);
+	}
+	else
+	{
+		msleep(ms);
+		//udelay(ms*1000);
+	}
 }
 
 static void lcm_rar(UINT32 ms)

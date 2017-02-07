@@ -5,7 +5,12 @@
 #include <linux/wait.h>
 #include <linux/module.h>
 #include <linux/poll.h>
-
+//xuecheng@wind-mobile.com 20150828 for patch 120
+void __weak ccci_power_off(void)
+{
+	return;
+}
+//xuecheng@wind-mobile.com 20150828 for patch 120
 int __weak exec_ccci_kern_func_by_md_id(int md_id, unsigned int id, char *buf, unsigned int len)
 {
 printk("[ccci/dummy] %s is not supported!\n",__FUNCTION__);
