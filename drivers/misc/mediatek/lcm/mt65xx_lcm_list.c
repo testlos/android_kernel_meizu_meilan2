@@ -52,6 +52,9 @@ LCM_DRIVER *lcm_driver_list[] = {
 	&aeon_ili9881c_hd720_dsi_vdo_hlt_8536_lcm_drv,
 #endif
 
+#if defined(OTM1285A_HD720_DSI_VDO_BY) 
+	&otm1285a_hd720_dsi_vdo_by_lcm_drv,
+#endif
 #if defined(OTM1287A_HD720_DSI_VDO_E520_V511_LIDE)
         &otm1287a_hd720_dsi_vdo_e520_v511_lide_lcm_drv,
 #endif
