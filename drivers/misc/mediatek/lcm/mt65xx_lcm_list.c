@@ -4,7 +4,8 @@
 #include <platform/disp_drv_platform.h>
 #else
 #include <linux/delay.h>
-/* #include <mach/mt_gpio.h> */
+#include <mt-plat/mt_gpio.h>
+#include <mach/gpio_const.h>
 #endif
 
 /* used to identify float ID PIN status */
@@ -138,8 +139,18 @@ LCM_COMPILE_ASSERT(1 < sizeof(lcm_driver_list) / sizeof(LCM_DRIVER*));
 #else
 LCM_COMPILE_ASSERT(0 != sizeof(lcm_driver_list) / sizeof(LCM_DRIVER *));
 #endif
-#if defined(NT35520_HD720_DSI_CMD_TM) | defined(NT35520_HD720_DSI_CMD_BOE) | \
-	defined(NT35521_HD720_DSI_VDO_BOE) | defined(NT35521_HD720_DSI_VIDEO_TM)
+#if defined(NT35520_HD720_DSI_CMD_TM) || defined(NT35520_HD720_DSI_CMD_BOE) || \
+	defined(NT35521_HD720_DSI_VDO_BOE) || defined(NT35521_HD720_DSI_VIDEO_TM) || \
+	defined(OTM1285A_HD720_DSI_VDO_BY)
+
+#define GPIO_DISP_ID0_PIN               (GPIO129 | 0x80000000)
+#define GPIO_DISP_ID0_PIN_M_GPIO        GPIO_MODE_00
+#define GPIO_DISP_ID0_PIN_M_PWM         GPIO_MODE_02
+#define GPIO_DISP_ID0_PIN_M_BPI_BUS     GPIO_MODE_01
+#define GPIO_DISP_ID0_PIN_M_I2S2_LRCK   GPIO_MODE_05
+#define GPIO_DISP_ID0_PIN_M_PTA_TXD     GPIO_MODE_06
+#define GPIO_DISP_ID0_PIN_M_LTE_URXD    GPIO_MODE_07
+
 static unsigned char lcd_id_pins_value = 0xFF;
 
 /**
