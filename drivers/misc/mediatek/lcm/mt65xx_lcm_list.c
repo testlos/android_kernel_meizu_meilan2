@@ -53,7 +53,7 @@ LCM_DRIVER *lcm_driver_list[] = {
 	&aeon_ili9881c_hd720_dsi_vdo_hlt_8536_lcm_drv,
 #endif
 
-#if defined(OTM1285A_HD720_DSI_VDO_BY) 
+#if defined(OTM1285A_HD720_DSI_VDO_BY)
 	&otm1285a_hd720_dsi_vdo_by_lcm_drv,
 #endif
 #if defined(OTM1287A_HD720_DSI_VDO_E520_V511_LIDE)
@@ -143,13 +143,21 @@ LCM_COMPILE_ASSERT(0 != sizeof(lcm_driver_list) / sizeof(LCM_DRIVER *));
 	defined(NT35521_HD720_DSI_VDO_BOE) || defined(NT35521_HD720_DSI_VIDEO_TM) || \
 	defined(OTM1285A_HD720_DSI_VDO_BY)
 
-#define GPIO_DISP_ID0_PIN               (GPIO129 | 0x80000000)
-#define GPIO_DISP_ID0_PIN_M_GPIO        GPIO_MODE_00
-#define GPIO_DISP_ID0_PIN_M_PWM         GPIO_MODE_02
-#define GPIO_DISP_ID0_PIN_M_BPI_BUS     GPIO_MODE_01
-#define GPIO_DISP_ID0_PIN_M_I2S2_LRCK   GPIO_MODE_05
-#define GPIO_DISP_ID0_PIN_M_PTA_TXD     GPIO_MODE_06
-#define GPIO_DISP_ID0_PIN_M_LTE_URXD    GPIO_MODE_07
+#define GPIO_DISP_ID0_PIN                    (GPIO129 | 0x80000000)
+#define GPIO_DISP_ID0_PIN_M_GPIO             GPIO_MODE_00
+#define GPIO_DISP_ID0_PIN_M_PWM              GPIO_MODE_02
+#define GPIO_DISP_ID0_PIN_M_BPI_BUS          GPIO_MODE_01
+#define GPIO_DISP_ID0_PIN_M_I2S2_LRCK        GPIO_MODE_05
+#define GPIO_DISP_ID0_PIN_M_PTA_TXD          GPIO_MODE_06
+#define GPIO_DISP_ID0_PIN_M_LTE_URXD         GPIO_MODE_07
+
+#define GPIO_DISP_ID1_PIN                    (GPIO128 | 0x80000000)
+#define GPIO_DISP_ID1_PIN_M_GPIO             GPIO_MODE_00
+#define GPIO_DISP_ID1_PIN_M_BPI_BUS          GPIO_MODE_01
+#define GPIO_DISP_ID1_PIN_M_GPS_FRAME_SYNC   GPIO_MODE_03
+#define GPIO_DISP_ID1_PIN_M_I2S2_DI          GPIO_MODE_05
+#define GPIO_DISP_ID1_PIN_M_PTA_RXD          GPIO_MODE_06
+#define GPIO_DISP_ID1_PIN_M_UTXD             GPIO_MODE_07
 
 static unsigned char lcd_id_pins_value = 0xFF;
 
