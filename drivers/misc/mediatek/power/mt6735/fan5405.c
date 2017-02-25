@@ -23,7 +23,7 @@ static int fan5405_driver_probe(struct i2c_client *client, const struct i2c_devi
 
 #ifdef CONFIG_OF
 static const struct of_device_id fan5405_of_match[] = {
-	{.compatible = "fan5405",},
+	{.compatible = "mediatek,fan5405",},
 	{},
 };
 
@@ -124,12 +124,12 @@ unsigned int fan5405_read_interface(unsigned char RegNum, unsigned char *val, un
 
 	ret = fan5405_read_byte(RegNum, &fan5405_reg);
 
-	battery_log(BAT_LOG_FULL, "[fan5405_read_interface] Reg[%x]=0x%x\n", RegNum, fan5405_reg);
+	pr_info( "[fan5405_read_interface] Reg[%x]=0x%x\n", RegNum, fan5405_reg);
 
 	fan5405_reg &= (MASK << SHIFT);
 	*val = (fan5405_reg >> SHIFT);
 
-	battery_log(BAT_LOG_FULL, "[fan5405_read_interface] val=0x%x\n", *val);
+	pr_info( "[fan5405_read_interface] val=0x%x\n", *val);
 
 	return ret;
 }
@@ -141,7 +141,7 @@ unsigned int fan5405_config_interface(unsigned char RegNum, unsigned char val, u
 	int ret = 0;
 
 	ret = fan5405_read_byte(RegNum, &fan5405_reg);
-	battery_log(BAT_LOG_FULL, "[fan5405_config_interface] Reg[%x]=0x%x\n", RegNum, fan5405_reg);
+	pr_info( "[fan5405_config_interface] Reg[%x]=0x%x\n", RegNum, fan5405_reg);
 
 	fan5405_reg &= ~(MASK << SHIFT);
 	fan5405_reg |= (val << SHIFT);
@@ -154,7 +154,7 @@ unsigned int fan5405_config_interface(unsigned char RegNum, unsigned char val, u
 	}
 
 	ret = fan5405_write_byte(RegNum, fan5405_reg);
-	battery_log(BAT_LOG_FULL, "[fan5405_config_interface] write Reg[%x]=0x%x\n", RegNum,
+	pr_info( "[fan5405_config_interface] write Reg[%x]=0x%x\n", RegNum,
 		    fan5405_reg);
 
 	return ret;
@@ -523,12 +523,12 @@ void fan5405_hw_component_detect(void)
 	else
 		g_fan5405_hw_exist = 1;
 
-	battery_log(BAT_LOG_CRTI, "[fan5405_hw_component_detect] exist=%d, Reg[03]=0x%x\n", g_fan5405_hw_exist, val);
+	pr_info( "[fan5405_hw_component_detect] exist=%d, Reg[03]=0x%x\n", g_fan5405_hw_exist, val);
 }
 
 int is_fan5405_exist(void)
 {
-	battery_log(BAT_LOG_CRTI, "[is_fan5405_exist] g_fan5405_hw_exist=%d\n", g_fan5405_hw_exist);
+	pr_info( "[is_fan5405_exist] g_fan5405_hw_exist=%d\n", g_fan5405_hw_exist);
 
 	return g_fan5405_hw_exist;
 }
@@ -537,18 +537,19 @@ void fan5405_dump_register(void)
 {
 	int i = 0;
 
-	battery_log(BAT_LOG_FULL, "[fan5405] ");
+	pr_info( "[fan5405] ");
 	for (i = 0; i < fan5405_REG_NUM; i++) {
 		fan5405_read_byte(i, &fan5405_reg[i]);
-		battery_log(BAT_LOG_FULL, "[0x%x]=0x%x ", i, fan5405_reg[i]);
+		pr_info( "[0x%x]=0x%x ", i, fan5405_reg[i]);
 	}
-	battery_log(BAT_LOG_FULL, "\n");
+	pr_info( "\n");
 }
 
 static int fan5405_driver_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	new_client = client;
 
+	pr_info("fan5405:fan5405_driver_probe\n");
 	fan5405_hw_component_detect();
 	fan5405_dump_register();
 	chargin_hw_init_done = KAL_TRUE;
@@ -564,7 +565,7 @@ static int fan5405_driver_probe(struct i2c_client *client, const struct i2c_devi
 unsigned char g_reg_value_fan5405 = 0;
 static ssize_t show_fan5405_access(struct device *dev, struct device_attribute *attr, char *buf)
 {
-	battery_log(BAT_LOG_CRTI, "[show_fan5405_access] 0x%x\n", g_reg_value_fan5405);
+	pr_info( "[show_fan5405_access] 0x%x\n", g_reg_value_fan5405);
 	return sprintf(buf, "%u\n", g_reg_value_fan5405);
 }
 
@@ -576,7 +577,7 @@ static ssize_t store_fan5405_access(struct device *dev, struct device_attribute 
 	unsigned int reg_value = 0;
 	unsigned int reg_address = 0;
 
-	battery_log(BAT_LOG_CRTI, "[store_fan5405_access]\n");
+	pr_info( "[store_fan5405_access]\n");
 
 	if (buf != NULL && size != 0) {
 
@@ -591,16 +592,16 @@ static ssize_t store_fan5405_access(struct device *dev, struct device_attribute 
 			val = strsep(&pvalue, " ");
 			ret = kstrtou32(val, 16, (unsigned int *)&reg_value);
 
-			battery_log(BAT_LOG_CRTI,
+			pr_info(
 			    "[store_fan5405_access] write fan5405 reg 0x%x with value 0x%x !\n",
 			     reg_address, reg_value);
 			ret = fan5405_config_interface(reg_address, reg_value, 0xFF, 0x0);
 		} else {
 			ret = fan5405_read_interface(reg_address, &g_reg_value_fan5405, 0xFF, 0x0);
-			battery_log(BAT_LOG_CRTI,
+			pr_info(
 			    "[store_fan5405_access] read fan5405 reg 0x%x with value 0x%x !\n",
 			     reg_address, g_reg_value_fan5405);
-			battery_log(BAT_LOG_CRTI,
+			pr_info(
 			    "[store_fan5405_access] Please use \"cat fan5405_access\" to get value\r\n");
 		}
 	}
@@ -613,7 +614,7 @@ static int fan5405_user_space_probe(struct platform_device *dev)
 {
 	int ret_device_file = 0;
 
-	battery_log(BAT_LOG_CRTI, "******** fan5405_user_space_probe!! ********\n");
+	pr_info( "******** fan5405_user_space_probe!! ********\n");
 
 	ret_device_file = device_create_file(&(dev->dev), &dev_attr_fan5405_access);
 
@@ -635,29 +636,31 @@ static struct platform_driver fan5405_user_space_driver = {
 static int __init fan5405_init(void)
 {
 	int ret = 0;
-
+	pr_info(
+			    "[fan5405_init]\n");
 	if (i2c_add_driver(&fan5405_driver) != 0) {
-		battery_log(BAT_LOG_CRTI,
+		pr_info(
 			    "[fan5405_init] failed to register fan5405 i2c driver.\n");
 	} else {
-		battery_log(BAT_LOG_CRTI,
+		pr_info(
 			    "[fan5405_init] Success to register fan5405 i2c driver.\n");
 	}
 
 	/* fan5405 user space access interface */
 	ret = platform_device_register(&fan5405_user_space_device);
 	if (ret) {
-		battery_log(BAT_LOG_CRTI, "****[fan5405_init] Unable to device register(%d)\n",
+		pr_info( "****[fan5405_init] Unable to device register(%d)\n",
 			    ret);
 		return ret;
 	}
 	ret = platform_driver_register(&fan5405_user_space_driver);
 	if (ret) {
-		battery_log(BAT_LOG_CRTI, "****[fan5405_init] Unable to register driver (%d)\n",
+		pr_info( "****[fan5405_init] Unable to register driver (%d)\n",
 			    ret);
 		return ret;
 	}
 
+	pr_info("fan5405:fan5405_init: user space driver/device registered\n");
 	return 0;
 }
 

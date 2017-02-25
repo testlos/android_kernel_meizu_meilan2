@@ -265,6 +265,8 @@ bool usb_cable_connected(void)
 		os_printk(K_INFO, "%s type=%d\n", __func__, chg_type);
 		if (chg_type == STANDARD_HOST || chg_type == CHARGING_HOST)
 			return true;
+	} else {
+		os_printk(K_INFO, "upmu_is_chr_det returned false\n");
 	}
 #endif
 	os_printk(K_INFO, "%s no USB Host detect!\n", __func__);

@@ -313,7 +313,9 @@ bool upmu_is_chr_det(void)
 #else
 	u32 tmp32;
 
+	pr_info("upmu_is_chr_det: ")
 	tmp32 = bat_charger_get_detect_status();
+	pr_info("upmu_is_chr_det: bat_charger_get_detect_status returned %d", tmp32);
 	if (tmp32 == 0)
 		return false;
 

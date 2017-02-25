@@ -1,0 +1,7 @@
+
+config CONFIG_MTK_MMC3524X
+	bool "MMC3524 for MediaTek package"
+	default n
+	help
+	  It support different magnetometer sensor.
+          If this option is set, it will support MMC3524 magnetometer.

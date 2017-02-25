@@ -7,6 +7,8 @@
 #include <mt-plat/battery_common.h>
 #include <mach/mt_charging.h>
 #include <mach/mt_pmic.h>
+#include <mach/gpio_const.h>
+#include <mt_gpio.h>
 #include "fan5405.h"
 
 /* ============================================================ // */
@@ -26,6 +28,30 @@
 #define WIRELESS_CHARGER_EXIST_STATE 0
 int wireless_charger_gpio_number = (168 | 0x80000000);
 #endif
+
+#if 1 //gemingming@wind-mobi.com 20150117 config GPI58
+//#include <cust_gpio_usage.h>
+#define GPIO_SWCHARGER_EN_PIN         (GPIO58 | 0x80000000)
+#define GPIO_SWCHARGER_EN_PIN_M_GPIO  GPIO_MODE_00
+#define GPIO_SWCHARGER_EN_PIN_M_KROW  GPIO_MODE_06
+#define GPIO_SWCHARGER_EN_PIN_M_UTXD   GPIO_MODE_01
+#define GPIO_SWCHARGER_EN_PIN_M_DPI_VSYNC   GPIO_MODE_02
+#define GPIO_SWCHARGER_EN_PIN_M_URXD   GPIO_MODE_03
+#define GPIO_SWCHARGER_EN_PIN_M_MD_UTXD   GPIO_MODE_04
+#define GPIO_SWCHARGER_EN_PIN_M_TDD_TXD   GPIO_MODE_05
+#define GPIO_SWCHARGER_EN_PIN_M_DBG_MON_A   GPIO_MODE_07
+int gpio_number   = GPIO_SWCHARGER_EN_PIN; 
+int gpio_off_mode = GPIO_SWCHARGER_EN_PIN_M_GPIO;
+int gpio_on_mode  = GPIO_SWCHARGER_EN_PIN_M_GPIO;
+#else
+int gpio_number   = (19 | 0x80000000); 
+int gpio_off_mode = 0;
+int gpio_on_mode  = 0;
+#endif
+int gpio_off_dir  = GPIO_DIR_OUT;
+int gpio_off_out  = GPIO_OUT_ONE;
+int gpio_on_dir   = GPIO_DIR_OUT;
+int gpio_on_out   = GPIO_OUT_ZERO;
 
 const u32 VBAT_CV_VTH[] = {
 	BATTERY_VOLT_03_500000_V, BATTERY_VOLT_03_520000_V, BATTERY_VOLT_03_540000_V,
@@ -81,7 +107,7 @@ u32 charging_value_to_parameter(const u32 *parameter, const u32 array_size, cons
 {
 	if (val < array_size)
 		return parameter[val];
-	battery_log(BAT_LOG_CRTI, "Can't find the parameter \r\n");
+	pr_err( "Can't find the parameter \n");
 	return parameter[0];
 }
 
@@ -93,7 +119,7 @@ u32 charging_parameter_to_value(const u32 *parameter, const u32 array_size, cons
 		if (val == *(parameter + i))
 			return i;
 
-	battery_log(BAT_LOG_CRTI, "NO register value match \r\n");
+	pr_info( "NO register value match\n");
 
 	return 0;
 }
@@ -114,7 +140,7 @@ static u32 bmt_find_closest_level(const u32 *pList, u32 number, u32 level)
 			if (pList[i] <= level)
 				return pList[i];
 
-		battery_log(BAT_LOG_CRTI, "Can't find closest level, small value first \r\n");
+		pr_info( "Can't find closest level, small value first\n");
 		return pList[0];
 		/* return CHARGE_CURRENT_0_00_MA; */
 	} else {
@@ -122,7 +148,7 @@ static u32 bmt_find_closest_level(const u32 *pList, u32 number, u32 level)
 			if (pList[i] <= level)
 				return pList[i];
 
-		battery_log(BAT_LOG_CRTI, "Can't find closest level, large value first \r\n");
+		pr_info( "Can't find closest level, large value first\n");
 		return pList[number - 1];
 		/* return CHARGE_CURRENT_0_00_MA; */
 	}
@@ -133,6 +159,10 @@ static u32 charging_hw_init(void *data)
 	u32 status = STATUS_OK;
 	static bool charging_init_flag = KAL_FALSE;
 
+	pr_info("hw_fan5405:charging_hw_init\n");
+	mt_set_gpio_mode(gpio_number,gpio_on_mode);
+	mt_set_gpio_dir(gpio_number,gpio_on_dir);
+	mt_set_gpio_out(gpio_number,gpio_on_out);
 #if defined(MTK_WIRELESS_CHARGER_SUPPORT)
 	mt_set_gpio_mode(wireless_charger_gpio_number, 0);	/* 0:GPIO mode */
 	mt_set_gpio_dir(wireless_charger_gpio_number, 0);	/* 0: input, 1: output */
@@ -166,6 +196,7 @@ static u32 charging_enable(void *data)
 	u32 status = STATUS_OK;
 	u32 enable = *(u32 *) (data);
 
+	pr_info("hw_fan5405:charging_enable: %d\n", enable);
 	if (KAL_TRUE == enable) {
 		fan5405_set_ce(0);
 		fan5405_set_hz_mode(0);
@@ -175,8 +206,13 @@ static u32 charging_enable(void *data)
 #if defined(CONFIG_USB_MTK_HDRC_HCD)
 		if (mt_usb_is_device())
 #endif
+		{
+			mt_set_gpio_mode(gpio_number,gpio_off_mode);  
+			mt_set_gpio_dir(gpio_number,gpio_off_dir);
+			mt_set_gpio_out(gpio_number,gpio_off_out);
 
 			fan5405_set_ce(1);
+		}
 	}
 
 	return status;
@@ -315,14 +351,12 @@ static u32 charging_get_battery_status(void *data)
 {
 	unsigned int status = STATUS_OK;
 
-#if 1 //defined(CONFIG_POWER_EXT) || defined(CONFIG_MTK_FPGA)
+#if defined(CONFIG_POWER_EXT) || defined(CONFIG_MTK_FPGA)
 	*(kal_bool *) (data) = 0;	/* battery exist */
-	battery_log(BAT_LOG_CRTI, "[charging_get_battery_status] battery exist for bring up.\n");
 #else
 	unsigned int val = 0;
 
 	val = pmic_get_register_value(PMIC_BATON_TDET_EN);
-	battery_log(BAT_LOG_FULL, "[charging_get_battery_status] BATON_TDET_EN = %d\n", val);
 	if (val) {
 		pmic_set_register_value(PMIC_BATON_TDET_EN, 1);
 		pmic_set_register_value(PMIC_RG_BATON_EN, 1);
@@ -343,11 +377,9 @@ static u32 charging_get_charger_det_status(void *data)
 
 #if defined(CONFIG_POWER_EXT) || defined(CONFIG_MTK_FPGA)
 	val = 1;
-	battery_log(BAT_LOG_CRTI, "[charging_get_charger_det_status] chr exist for fpga.\n");
 #else
 	val = pmic_get_register_value(PMIC_RGS_CHRDET);
 #endif
-
 	*(kal_bool *) (data) = val;
 
 	return status;
@@ -362,7 +394,6 @@ static u32 charging_get_charger_type(void *data)
 #else
 	*(CHARGER_TYPE *) (data) = hw_charging_get_charger_type();
 #endif
-
 	return status;
 }
 
@@ -374,7 +405,7 @@ static u32 charging_get_is_pcm_timer_trigger(void *data)
 		*(kal_bool *) (data) = KAL_TRUE;
 	else
 		*(kal_bool *) (data) = KAL_FALSE;
-	battery_log(BAT_LOG_CRTI, "slp_get_wake_reason=%d\n", slp_get_wake_reason());
+	pr_info( "slp_get_wake_reason=%d\n", slp_get_wake_reason());
 */
 	*(kal_bool *)(data) = KAL_FALSE;
 	return status;
@@ -386,7 +417,6 @@ static u32 charging_set_platform_reset(void *data)
 
 #if defined(CONFIG_POWER_EXT) || defined(CONFIG_MTK_FPGA)
 #else
-	battery_log(BAT_LOG_CRTI, "charging_set_platform_reset\n");
 
 	kernel_restart("battery service reboot system");
 	/* arch_reset(0,NULL); */
@@ -403,7 +433,6 @@ static u32 charging_get_platform_boot_mode(void *data)
 #else
 	*(unsigned int *) (data) = get_boot_mode();
 
-	battery_log(BAT_LOG_CRTI, "get_boot_mode=%d\n", get_boot_mode());
 #endif
 
 	return status;
@@ -415,7 +444,6 @@ static u32 charging_set_power_off(void *data)
 
 #if defined(CONFIG_POWER_EXT) || defined(CONFIG_MTK_FPGA)
 #else
-	battery_log(BAT_LOG_CRTI, "charging_set_power_off\n");
 	kernel_power_off();
 #endif
 
