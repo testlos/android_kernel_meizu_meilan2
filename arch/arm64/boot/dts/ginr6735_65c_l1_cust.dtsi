@@ -29,12 +29,12 @@
 	debounce = <6 256000>;
 	status = "okay";
 };*/
-/*&touch_panel {
+&touch {
 	interrupt-parent = <&eintc>;
 	interrupts = <10 IRQ_TYPE_EDGE_FALLING>;
 	debounce = <10 0>;
 	status = "okay";
-};*/
+};
 /*&mse {
 	interrupt-parent = <&eintc>;
 	interrupts = <61 IRQ_TYPE_LEVEL_LOW>;
@@ -136,11 +136,13 @@
 	regulator-default-on = <0>;*/ /* 0:skip, 1: off, 2:on */
 /*	status = "okay";
 };
+*/
 &mt_pmic_vgp1_ldo_reg {
 	regulator-name = "vgp1";
-	regulator-default-on = <0>;*/ /* 0:skip, 1: off, 2:on */
-/*	status = "okay";
+	regulator-default-on = <0>; /* 0:skip, 1: off, 2:on */
+	status = "okay";
 };
+/*
 &mt_pmic_vibr_ldo_reg {
 	regulator-name = "vibr";
 	regulator-default-on = <0>;*/ /* 0:skip, 1: off, 2:on */
@@ -176,11 +178,11 @@
 
 	status = "okay";
 };
-
+*/
 &touch {
 	vtouch-supply = <&mt_pmic_vgp1_ldo_reg>;
 	status = "okay";
-};*/
+};
 
 
 /********************************************
@@ -263,12 +265,12 @@
 &i2c1 {
 	#address-cells = <1>;
 	#size-cells = <0>;
-/*	cap_touch@5d {
+	cap_touch@5d {
 		compatible = "mediatek,cap_touch";
 		reg = <0x5d>;
 		status = "okay";
 	};
-	i2c_lcd_bias@3e {
+/*	i2c_lcd_bias@3e {
 		compatible = "mediatek,i2c_lcd_bias";
 		reg = <0x3e>;
 		status = "okay";
