@@ -113,6 +113,7 @@ obj-$(CONFIG_MTK_CCCI_EXT)     +=  dual_ccci/
 obj-$(CONFIG_MTK_C2K_SUPPORT) += c2k_ccci/
 obj-$(CONFIG_MTK_ECCCI_DRIVER) +=  eccci/
 
+obj-$(CONFIG_MTK_TOUCHKEY) += touchkey/
 obj-$(CONFIG_MTK_HIBERNATION) += hibcore/
 
 ifdef CONFIG_CUSTOM_KERNEL_SSW

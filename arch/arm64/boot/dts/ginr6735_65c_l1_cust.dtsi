@@ -11,12 +11,6 @@
  * EINT DTSI File
 *************************/
 
-/*&cp128_eint {
-	interrupt-parent = <&eintc>;
-	interrupts = <2 IRQ_TYPE_LEVEL_LOW>;
-	debounce = <2 0>;
-	status = "okay";
-};*/
 /*&msdc1_ins {
 	interrupt-parent = <&eintc>;
 	interrupts = <5 IRQ_TYPE_LEVEL_HIGH>;
@@ -279,13 +273,13 @@
 		compatible = "mediatek,fan5405";
 		reg = <0x6a>;
 		status = "okay";
-        };
+	};
 };
-/*
+
 &i2c2 {
 	#address-cells = <1>;
 	#size-cells = <0>;
-	msensor@0d {
+/*	msensor@0d {
 		compatible = "mediatek,msensor";
 		reg = <0x0d>;
 		status = "okay";
@@ -314,9 +308,14 @@
 		compatible = "mediatek,strobe_main";
 		reg = <0x63>;
 		status = "okay";
+	}; */
+	mback:aw9201_ts@45 {
+		compatible = "mediatek,aw9201_ts";
+		reg = <0x45>;
+		status = "okay";
 	};
 };
-
+/*
 &i2c3 {
 	#address-cells = <1>;
 	#size-cells = <0>;

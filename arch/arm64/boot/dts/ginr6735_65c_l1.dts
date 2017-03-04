@@ -189,6 +189,32 @@
 };
 /* TOUCH end */
 
+&mback {
+	pinctrl-names = "mback_eint_default", "mback_eint_as_int";
+	pinctrl-0 = <&mback_eint_default>;
+	pinctrl-1 = <&mback_eint_as_int>;
+	status = "okay";
+};
+&pio {
+	mback_eint_default: mback_eint_default@gpio02 {
+	};
+	mback_eint_as_int: eint@gpio2 {
+		pins_cmd_dat {
+			pins = <PINMUX_GPIO2__FUNC_GPIO2>;
+			slew-rate = <0>;
+			bias-pull-up = <00>;
+		};
+	};
+};
+&mback {
+	interrupt-parent = <&eintc>;
+	interrupts = <2 IRQ_TYPE_LEVEL_LOW>;
+	debounce = <2 0>;
+	status = "okay";
+};
+/* mback end */
+
+
 /* AUDIO GPIO standardization */
 &audgpio {
 	pinctrl-names = "default", "audpmicclk-mode0", "audpmicclk-mode1", "audi2s1-mode0", "audi2s1-mode1", "extamp-pullhigh", "extamp-pulllow", "extamp2-pullhigh", "extamp2-pulllow", "rcvspk-pullhigh", "rcvspk-pulllow";
