@@ -1,0 +1,4 @@
+config MEIZU_CLASS
+	bool "Meizu class device driver"
+	help
+		This option provides the Meizu class device driver.
