@@ -1320,8 +1320,8 @@ CONFIG_MTK_PWM=y
 # CONFIG_MTK_AUTO_DETECT_ACCELEROMETER is not set
 CONFIG_CUSTOM_KERNEL_ACCELEROMETER=y
 # CONFIG_MTK_KX023_NEW is not set
-CONFIG_AEON_KX023_NEW=y
-CONFIG_AEON_MC3410_NEW=y
+#Willeyfox CONFIG_AEON_KX023_NEW=y
+#Willeyfox CONFIG_AEON_MC3410_NEW=y
 CONFIG_CUSTOM_KERNEL_ALSPS=y
 # CONFIG_MTK_AUTO_DETECT_ALSPS is not set
 # CONFIG_MTK_EPL2182 is not set
@@ -1619,6 +1619,7 @@ CONFIG_MTK_SIM2=y
 # CONFIG_MTK_BMA222E_NEW is not set
 #dixiaobing@wind-mobi.com 20150710 start
 #CONFIG_MTK_MC3410_NEW is not set
+# Accelerometer
 CONFIG_MTK_LIS3DH_NEW=y
 #dixiaobing@wind-mobi.com 20150710 end
 # CONFIG_MTK_MPU6050G_NEW is not set
@@ -1626,6 +1627,7 @@ CONFIG_MTK_LIS3DH_NEW=y
 # CONFIG_MTK_MPU6515A is not set
 # CONFIG_MTK_MPU60X0 is not set
 #wenggaojian@wind-mobi.com begin
+# Accelerometer
 CONFIG_MTK_KXTJ2_1009_NEW=y
 #wenggaojian@wind-mobi.com end
 # CONFIG_MTK_MC3XXX_AUTO is not set

@@ -288,12 +288,18 @@
 		compatible = "mediatek,gyro";
 		reg = <0x68>;
 		status = "okay";
-	};
-	gsensor@4c {
-		compatible = "mediatek,gsensor";
-		reg = <0x4c>;
+	}; */
+	accel0:gsensor@0e {
+		compatible = "mediatek,kxtj2_1009";
+		reg = <0x0e>;
 		status = "okay";
 	};
+	accel1:gsensor@18 {
+		compatible = "mediatek,lis3dh";
+		reg = <0x18>;
+		status = "okay";
+	};
+/*
 	alsps@60 {
 		compatible = "mediatek,alsps";
 		reg = <0x60>;

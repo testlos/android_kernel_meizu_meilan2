@@ -25,7 +25,7 @@ obj-$(CONFIG_MTK_BMA250)   +=  bma250/
 obj-$(CONFIG_MTK_KXTIK1004)   +=  kxtik1004/
 obj-$(CONFIG_MTK_MPU6515A)   +=  mpu6515/
 obj-$(CONFIG_MTK_KXTJ2_1009)   +=  KXTJ2_1009/
-obj-$(CONFIG_MTK_KXTJ2_1009_NEW)   +=  KXTJ2_1009-new/
+obj-$(CONFIG_MTK_KXTJ2_1009_NEW)   +=  kxtj2_1009-new/
 obj-$(CONFIG_MTK_BMA250E)   +=  bma250e/
 obj-$(CONFIG_MTK_MC3410_NEW)   +=  mc3410-new/
 obj-$(CONFIG_MTK_MC3XXX_AUTO)   +=  mc3xxx_auto/
@@ -38,6 +38,7 @@ obj-$(CONFIG_MTK_ICM20645G)   +=  icm20645g/
 obj-$(CONFIG_MTK_KX023_NEW)   +=  kx023-new/
 obj-$(CONFIG_AEON_KX023_NEW)   +=  aeon_kx023-new/
 obj-$(CONFIG_AEON_MC3410_NEW)   +=  aeon_mc3410-new/
+obj-$(CONFIG_MTK_LIS3DH_NEW)   += lis3dh-new/
 
 
 

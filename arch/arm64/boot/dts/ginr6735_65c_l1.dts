@@ -71,18 +71,9 @@
 		vib_limit = <9>;
 		vib_vol= <5>;
 	};
-  /*  start sensor */
-		cust_accel@0 {
-		compatible 				= "mediatek,MC3410";
-		i2c_num 				= <2>;
-		i2c_addr				= <0x4c 0 0 0>;
-		direction 				= <0>;
-		power_id 				= <0xffff>;
-		power_vol				= <0>;
-		firlen 					= <0>;
-		is_batch_supported  			= <0>;
-  		};
-  
+
+/* sensor configuration */
+
 		cust_alsps@0 {
 		compatible 				= "mediatek,CM36652";
 		i2c_num 				= <2>;
@@ -213,6 +204,26 @@
 	status = "okay";
 };
 /* mback end */
+
+&accel0 {
+	i2c_num = <2>;
+	i2c_addr = <0x0e 0 0 0>;
+	direction = <0>;
+	power_id = <0xffff>;
+	power_vol = <0>;
+	firlen = <0>;
+	is_batch_supported = <0>;
+};
+
+&accel1 {
+	i2c_num = <2>;
+	i2c_addr = <0x18 0 0 0>;
+	direction = <0>;
+	power_id = <0xffff>;
+	power_vol = <0>;
+	firlen = <0>;
+	is_batch_supported = <0>;
+};
 
 
 /* AUDIO GPIO standardization */
