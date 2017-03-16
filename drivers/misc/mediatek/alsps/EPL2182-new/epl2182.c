@@ -44,8 +44,6 @@
  * extern functions
 *******************************************************************************/
 
-#define COMPATIABLE_NAME "mediatek,epl2182"
-
 /******************************************************************************
  * configuration
 *******************************************************************************/
@@ -204,7 +202,7 @@ struct epl2182_priv {
 
 #ifdef CONFIG_OF
 static const struct of_device_id alsps_of_match[] = {
-	{.compatible = "mediatek,alsps"},
+	{.compatible = "mediatek,epl2182"},
 	{},
 };
 #endif
@@ -219,11 +217,11 @@ static struct i2c_driver epl2182_i2c_driver = {
 	.resume = epl2182_i2c_resume,
 	.id_table = epl2182_i2c_id,
 	.driver = {
-		   .name = EPL2182_DEV_NAME,
+		.name = EPL2182_DEV_NAME,
 #ifdef CONFIG_OF
-			.of_match_table = alsps_of_match,
+		.of_match_table = alsps_of_match,
 #endif
-		   },
+	},
 };
 
 
@@ -855,17 +853,22 @@ int epl2182_setup_eint(struct i2c_client *client)
 
 	APS_LOG("epl2182_setup_eint\n");
 
-
 	g_epl2182_ptr = obj;
 
 	/*configure to GPIO function, external interrupt */
 
 #ifndef FPGA_EARLY_PORTING
 /* gpio setting */
-	pinctrl = devm_pinctrl_get(&alsps_pdev->dev);
+	pinctrl = devm_pinctrl_get(&client->dev);
 	if (IS_ERR(pinctrl)) {
 		ret = PTR_ERR(pinctrl);
-		APS_ERR("Cannot find alsps pinctrl!\n");
+		APS_ERR("Cannot find alsps pinctrl from i2c device!\n");
+		pinctrl = devm_pinctrl_get(&alsps_pdev->dev);
+		if (IS_ERR(pinctrl)) {
+			ret = PTR_ERR(pinctrl);
+			APS_ERR("Cannot find alsps pinctrl from alsps device!\n");
+			return -EINVAL;
+		}
 	}
 	pins_default = pinctrl_lookup_state(pinctrl, "pin_default");
 	if (IS_ERR(pins_default)) {
@@ -895,17 +898,15 @@ int epl2182_setup_eint(struct i2c_client *client)
 			return -EINVAL;
 		}
 		if (request_irq
-		    (epl2182_obj->irq, epl2182_eint_func, IRQF_TRIGGER_NONE, "ALS-eint", NULL)) {
+				(epl2182_obj->irq, epl2182_eint_func, IRQF_TRIGGER_NONE, "ALS-eint", NULL)) {
 			APS_ERR("IRQ LINE NOT AVAILABLE!!\n");
 			return -EINVAL;
 		}
-		enable_irq(epl2182_obj->irq);
 	} else {
 		APS_ERR("null irq node!!\n");
 		return -EINVAL;
 	}
 
-	enable_irq(epl2182_obj->irq);
 #endif				/* #ifndef FPGA_EARLY_PORTING */
 
 #endif				/* #ifdef CUSTOM_KERNEL_SENSORHUB */
@@ -1570,7 +1571,6 @@ static int als_enable_nodata(int en)
 		APS_ERR("epl2182_obj is null!!\n");
 		return -1;
 	}
-	APS_LOG("epl2182_obj als enable value = %d\n", en);
 
 	if (en) {
 		set_bit(CMC_BIT_ALS, &epl2182_obj->enable);
@@ -1854,7 +1854,7 @@ static int epl2182_i2c_probe(struct i2c_client *client, const struct i2c_device_
 	atomic_set(&obj->als_suspend, 0);
 	atomic_set(&obj->ps_thd_val_high, obj->hw->ps_threshold_high);
 	atomic_set(&obj->ps_thd_val_low, obj->hw->ps_threshold_low);
-	obj->irq_node = of_find_compatible_node(NULL, NULL, "mediatek, als-eint");
+	obj->irq_node = of_find_compatible_node(NULL, NULL, alsps_of_match[0].compatible);
 
 	obj->ps_cali = 0;
 	obj->ps_enable = 0;
@@ -2034,8 +2034,8 @@ static int alsps_remove(void)
 /*----------------------------------------------------------------------------*/
 static int __init epl2182_init(void)
 {
-	hw = get_alsps_dts_func(COMPATIABLE_NAME, hw);
-	APS_LOG("%s: i2c_number=%d\n", __func__, hw->i2c_num);
+	hw = get_alsps_dts_func(alsps_of_match[0].compatible, hw);
+	pr_info("%s: i2c_number=%d\n", __func__, hw->i2c_num);
 	alsps_driver_add(&epl2182_init_info);
 	return 0;
 }

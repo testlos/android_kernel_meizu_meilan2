@@ -1326,10 +1326,12 @@ CONFIG_CUSTOM_KERNEL_ALSPS=y
 # CONFIG_MTK_AUTO_DETECT_ALSPS is not set
 # CONFIG_MTK_EPL2182 is not set
 #dixiaobing@wind-mobi.com 20150710 start
+# ALSPS
 CONFIG_MTK_EPL2182_NEW=y
 # CONFIG_MTK_STK3X1X is not set
 # CONFIG_MTK_STK3X1X_NEW is not set
-CONFIG_MTK_STK3X1X_NEW=y
+# ALSPS
+#DS???CONFIG_MTK_STK3X1X_NEW=y
 #dixiaobing@wind-mobi.com 20150710 end
 # CONFIG_AEON_STK3X1X_NEW is not set
 #dixiaobing@wind-mobi.com 20150710 start

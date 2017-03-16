@@ -299,13 +299,12 @@
 		reg = <0x18>;
 		status = "okay";
 	};
-/*
-	alsps@60 {
-		compatible = "mediatek,alsps";
-		reg = <0x60>;
+	alsps0:alsps@49 {
+		compatible = "mediatek,epl2182";
+		reg = <0x49>;
 		status = "okay";
 	};
-	nfc@28 {
+/*	nfc@28 {
 		compatible = "mediatek,nfc";
 		reg = <0x28>;
 		status = "okay";
