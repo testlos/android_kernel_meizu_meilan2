@@ -1,5 +1,5 @@
 
-config CONFIG_MTK_MMC3524X
+config MTK_MMC3524X
 	bool "MMC3524 for MediaTek package"
 	default n
 	help

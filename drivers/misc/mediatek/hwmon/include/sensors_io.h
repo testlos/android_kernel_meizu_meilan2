@@ -193,6 +193,16 @@ struct SENSOR_DATA {
 #define COMPAT_ECOMPASS_IOC_GET_LAYOUT		   _IOR(MSENSOR, 0X22, compat_int_t)
 #endif
 
+#define MMC3524X_IOC_READ_REG               _IOWR(MSENSOR, 0x23, unsigned char)
+#define MMC3524X_IOC_WRITE_REG              _IOW(MSENSOR,  0x24, unsigned char[2])
+#define MMC3524X_IOC_READ_REGS              _IOWR(MSENSOR, 0x25, unsigned char[10])
+
+#ifdef CONFIG_COMPAT
+#define COMPAT_MMC3524X_IOC_READ_REG                _IOWR(MSENSOR, 0x23, unsigned char)
+#define COMPAT_MMC3524X_IOC_WRITE_REG               _IOW(MSENSOR,  0x24, unsigned char[2])
+#define COMPAT_MMC3524X_IOC_READ_REGS               _IOWR(MSENSOR, 0x25, unsigned char[10])
+#endif
+
 /* IOCTLs for QMCX983 device */
 
 #define QMC_IOCTL_WRITE                 _IOW(MSENSOR, 0x40, char*)

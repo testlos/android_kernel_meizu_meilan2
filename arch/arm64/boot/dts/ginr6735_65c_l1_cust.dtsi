@@ -299,6 +299,11 @@
 		reg = <0x18>;
 		status = "okay";
 	};
+	mag0:mmc3524x@30 {
+		compatible = "mediatek,mmc3524x";
+		reg = <0x30>;
+		status = "okay";
+	};
 	alsps0:alsps@49 {
 		compatible = "mediatek,epl2182";
 		reg = <0x49>;
