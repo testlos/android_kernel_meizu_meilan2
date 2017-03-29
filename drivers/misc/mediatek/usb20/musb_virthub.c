@@ -362,7 +362,7 @@ int musb_hub_control(struct usb_hcd *hcd,
 			 * initialization logic, e.g. for OTG, or change any
 			 * logic relating to VBUS power-up.
 			 */
-			DBG(0, "try to call musb_start in virthub\n");
+			DBG(1, "try to call musb_start in virthub\n");
 			/* if (!hcd->self.is_b_host) */
 			/* musb_start(musb); */
 			break;

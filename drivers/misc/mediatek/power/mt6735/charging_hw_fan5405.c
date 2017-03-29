@@ -159,7 +159,7 @@ static u32 charging_hw_init(void *data)
 	u32 status = STATUS_OK;
 	static bool charging_init_flag = KAL_FALSE;
 
-	pr_info("hw_fan5405:charging_hw_init\n");
+	pr_debug("hw_fan5405:charging_hw_init\n");
 	mt_set_gpio_mode(gpio_number,gpio_on_mode);
 	mt_set_gpio_dir(gpio_number,gpio_on_dir);
 	mt_set_gpio_out(gpio_number,gpio_on_out);

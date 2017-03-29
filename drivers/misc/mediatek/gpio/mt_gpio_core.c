@@ -573,7 +573,7 @@ static int mt_gpio_probe(struct platform_device *dev)
 #endif
 
 	/* printk(KERN_ALERT"[GPIO]%5d,<%s> gpio devices probe\n", __LINE__, __func__); */
-	GPIOLOG("Registering GPIO device\n");
+	GPIODBG("Registering GPIO device\n");
 
 	if (!mt_gpio)
 		GPIO_RETERR(-EACCES, "");

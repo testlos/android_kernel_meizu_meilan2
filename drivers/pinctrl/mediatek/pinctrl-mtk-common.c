@@ -1701,7 +1701,7 @@ int mtk_pctrl_init(struct platform_device *pdev,
 	struct resource *res;
 	int i, ret, irq, ports_buf;
 
-	pr_warn("mtk_pctrl_init++++++\n");
+	pr_debug("mtk_pctrl_init++++++\n");
 	pctl = devm_kzalloc(&pdev->dev, sizeof(*pctl), GFP_KERNEL);
 	if (!pctl)
 		return -ENOMEM;
@@ -1866,7 +1866,7 @@ int mtk_pctrl_init(struct platform_device *pdev,
 	irq_set_handler_data(irq, pctl);
 	set_irq_flags(irq, IRQF_VALID);
 
-	pr_warn("mtk_pctrl_init------ ok\n");
+	pr_debug("mtk_pctrl_init------ ok\n");
 	return 0;
 
 chip_error:

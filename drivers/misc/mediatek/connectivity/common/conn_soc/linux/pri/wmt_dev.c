@@ -265,7 +265,7 @@ static int wmt_fb_notifier_callback(struct notifier_block *self, unsigned long e
 		g_es_lr_flag_for_quick_sleep = 0;
 		g_es_lr_flag_for_lpbk_onoff = 1;
 		osal_unlock_sleepable_lock(&g_es_lr_lock);
-		WMT_WARN_FUNC("@@@@@@@@@@wmt enter UNBLANK @@@@@@@@@@@@@@\n");
+		WMT_DBG_FUNC("@@@@@@@@@@wmt enter UNBLANK @@@@@@@@@@@@@@\n");
 		schedule_work(&gPwrOnOffWork);
 		break;
 	case FB_BLANK_POWERDOWN:
@@ -273,7 +273,7 @@ static int wmt_fb_notifier_callback(struct notifier_block *self, unsigned long e
 		g_es_lr_flag_for_quick_sleep = 1;
 		g_es_lr_flag_for_lpbk_onoff = 0;
 		osal_unlock_sleepable_lock(&g_es_lr_lock);
-		WMT_WARN_FUNC("@@@@@@@@@@wmt enter early POWERDOWN @@@@@@@@@@@@@@\n");
+		WMT_DBG_FUNC("@@@@@@@@@@wmt enter early POWERDOWN @@@@@@@@@@@@@@\n");
 		schedule_work(&gPwrOnOffWork);
 		break;
 	default:

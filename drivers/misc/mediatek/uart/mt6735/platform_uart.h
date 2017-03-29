@@ -183,7 +183,7 @@ do { \
 #define UART_DEBUG_EVT(evt)    ((evt) & uart->evt_mask)
 /*---------------------------------------------------------------------------*/
 #define MSG_FUNC_ENTRY(f)       MSG(FUC, "%s\n", __func__)
-#define MSG_RAW                 pr_notice
+#define MSG_RAW                 pr_debug
 /*---------------------------------------------------------------------------*/
 #else				/* release mode: only enable error log */
 #define MSG(evt, fmt, args...)  MSG##evt(fmt, ##args)

@@ -551,9 +551,9 @@ void get_gpio_vbase(struct device_node *node)
 			return;
 		}
 		/* gpio_reg = (GPIO_REGS*)(GPIO_BASE); */
-		GPIOERR("GPIO base add is 0x%p\n", gpio_vbase.gpio_regs);
+		GPIODBG("GPIO base add is 0x%p\n", gpio_vbase.gpio_regs);
 	}
-	GPIOERR("GPIO base addr is 0x%p, %s\n", gpio_vbase.gpio_regs, __func__);
+	GPIODBG("GPIO base addr is 0x%p, %s\n", gpio_vbase.gpio_regs, __func__);
 }
 
 /*-----------------------User need GPIO APIs before GPIO probe------------------*/
@@ -572,7 +572,7 @@ static int __init get_gpio_vbase_early(void)
 		return 0;
 	}
 	/* gpio_reg = (GPIO_REGS*)(GPIO_BASE); */
-	GPIOERR("GPIO base addr is 0x%p, %s\n", gpio_vbase.gpio_regs, __func__);
+	GPIODBG("GPIO base addr is 0x%p, %s\n", gpio_vbase.gpio_regs, __func__);
 	return 0;
 }
 

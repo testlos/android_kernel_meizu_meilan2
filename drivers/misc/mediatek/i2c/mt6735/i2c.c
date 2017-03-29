@@ -1465,7 +1465,7 @@ static s32 mt_i2c_probe(struct platform_device *pdev)
 	struct mt_i2c_t *i2c = NULL;
 	struct resource *res;
 
-	I2CLOG(" mt_i2c_probe+++++++++++++++++\n");
+	I2CMSG(" mt_i2c_probe+++++++++++++++++\n");
 	/* Request platform_device IO resource */
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (res == NULL)
@@ -1518,7 +1518,7 @@ static s32 mt_i2c_probe(struct platform_device *pdev)
 
 #endif
 	i2c->irqnr = irq;
-	pr_info("reg: 0x%p, irq: 0x%d, id: %d\n", i2c->base, i2c->irqnr, i2c->id);
+	I2CMSG("reg: 0x%p, irq: 0x%d, id: %d\n", i2c->base, i2c->irqnr, i2c->id);
 
 #if defined(CONFIG_MTK_CLKMGR)
 
@@ -1622,7 +1622,7 @@ static s32 mt_i2c_probe(struct platform_device *pdev)
 
 #endif
 
-	I2CLOG(" id: %d, reg: 0x%p, dma_reg: 0x%p, irq: %d\n", i2c->id, i2c->base, i2c->pdmabase,
+	I2CMSG(" id: %d, reg: 0x%p, dma_reg: 0x%p, irq: %d\n", i2c->id, i2c->base, i2c->pdmabase,
 	       i2c->irqnr);
 
 	spin_lock_init(&i2c->lock);
@@ -1635,7 +1635,7 @@ static s32 mt_i2c_probe(struct platform_device *pdev)
 		goto free;
 	}
 	/* pdata= dev_get_platdata(i2c->adap.dev.parent); */
-	I2CLOG("i2c-bus%d speed is %dKhz\n", i2c->id, i2c->defaul_speed);
+	I2CMSG("i2c-bus%d speed is %dKhz\n", i2c->id, i2c->defaul_speed);
 
 	mt_i2c_init_hw(i2c);
 	i2c_set_adapdata(&i2c->adap, i2c);
@@ -1653,7 +1653,7 @@ static s32 mt_i2c_probe(struct platform_device *pdev)
 #endif
 	I2CLOG("i2c-%d: base(0x%p),dmabase(0x%p),irq(0x%d)", i2c->id, i2c->base, i2c->pdmabase,
 	       i2c->irqnr);
-	I2CLOG(" mt_i2c_probe ok------------------\n");
+	I2CMSG(" mt_i2c_probe ok------------------\n");
 	return ret;
 
 free:

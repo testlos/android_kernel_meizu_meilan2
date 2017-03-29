@@ -564,9 +564,9 @@ int mt_get_pwm_clk_src(struct platform_device *pdev)
 
 	for (i = PWM1_CLK; i < PWM_CLK_NUM; i++) {
 		pwm_clk[i] = devm_clk_get(&pdev->dev, pwm_clk_name[i]);
-		pr_err("[PWM] get %s clock, %p\n", pwm_clk_name[i], pwm_clk[i]);
+		PWMDBG("[PWM] get %s clock, %p\n", pwm_clk_name[i], pwm_clk[i]);
 		if (IS_ERR(pwm_clk[i])) {
-			PWMDBG("cannot get %s clock\n", pwm_clk_name[i]);
+			pr_err("cannot get %s clock\n", pwm_clk_name[i]);
 			return PTR_ERR(pwm_clk[i]);
 		}
 	}

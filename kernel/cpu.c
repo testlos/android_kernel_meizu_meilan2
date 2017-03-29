@@ -219,13 +219,13 @@ int __ref register_cpu_notifier(struct notifier_block *nb)
 	symname = kallsyms_lookup((unsigned long)nb->notifier_call,
 			NULL, NULL, NULL, namebuf);
 	if (symname)
-		pr_info("[cpu_ntf] <%02d>%08lx (%s)\n",
+		pr_debug("[cpu_ntf] <%02d>%08lx (%s)\n",
 			index++, (unsigned long)nb->notifier_call, symname);
 	else
-		pr_info("[cpu_ntf] <%02d>%08lx\n",
+		pr_debug("[cpu_ntf] <%02d>%08lx\n",
 			index++, (unsigned long)nb->notifier_call);
 #else
-	pr_info("[cpu_ntf] <%02d>%08lx\n",
+	pr_debug("[cpu_ntf] <%02d>%08lx\n",
 		index++, (unsigned long)nb->notifier_call);
 #endif
 #endif /* MTK_CPU_HOTPLUG_DEBUG_0 */

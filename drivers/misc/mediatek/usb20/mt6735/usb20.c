@@ -215,7 +215,7 @@ static void musb_do_idle(unsigned long _musb)
 	u8 devctl;
 
 	if (musb->is_active) {
-		DBG(0, "%s active, igonre do_idle\n", otg_state_string(musb->xceiv->state));
+		DBG(1, "%s active, igonre do_idle\n", otg_state_string(musb->xceiv->state));
 		return;
 	}
 
@@ -245,7 +245,7 @@ static void musb_do_idle(unsigned long _musb)
 	}
 	spin_unlock_irqrestore(&musb->lock, flags);
 
-	DBG(0, "otg_state %s\n", otg_state_string(musb->xceiv->state));
+	DBG(1, "otg_state %s\n", otg_state_string(musb->xceiv->state));
 }
 
 static void mt_usb_try_idle(struct musb *musb, unsigned long timeout)
@@ -288,7 +288,7 @@ static void mt_usb_enable(struct musb *musb)
 	unsigned long flags;
 
 	virt_enable++;
-	DBG(0, "<%d,%d>,<%d,%d,%d,%d>\n", mtk_usb_power, musb->power, virt_enable, virt_disable,
+	DBG(1, "<%d,%d>,<%d,%d,%d,%d>\n", mtk_usb_power, musb->power, virt_enable, virt_disable,
 	    real_enable, real_disable);
 
 	if (musb->power == true)
@@ -310,7 +310,7 @@ static void mt_usb_enable(struct musb *musb)
 #ifndef FPGA_PLATFORM
 #ifdef CONFIG_ARCH_MT6735
 		/* enable_pll(UNIVPLL, "USB_PLL"); */
-		DBG(0, "enable UPLL before connect\n");
+		DBG(1, "enable UPLL before connect\n");
 		vcore_hold();
 #endif
 #endif
@@ -322,10 +322,8 @@ static void mt_usb_enable(struct musb *musb)
 		real_enable++;
 		if (in_interrupt()) {
 			DBG(0, "in interrupt !!!!!!!!!!!!!!!\n");
-			DBG(0, "in interrupt !!!!!!!!!!!!!!!\n");
-			DBG(0, "in interrupt !!!!!!!!!!!!!!!\n");
 		}
-		DBG(0, "<%d,%d,%d,%d>\n", virt_enable, virt_disable, real_enable, real_disable);
+		DBG(1, "<%d,%d,%d,%d>\n", virt_enable, virt_disable, real_enable, real_disable);
 
 	}
 	musb->power = true;
@@ -336,7 +334,7 @@ static void mt_usb_enable(struct musb *musb)
 static void mt_usb_disable(struct musb *musb)
 {
 	virt_disable++;
-	DBG(0, "<%d,%d>,<%d,%d,%d,%d>\n", mtk_usb_power, musb->power, virt_enable, virt_disable,
+	DBG(1, "<%d,%d>,<%d,%d,%d,%d>\n", mtk_usb_power, musb->power, virt_enable, virt_disable,
 	    real_enable, real_disable);
 
 	if (musb->power == false)
@@ -355,13 +353,11 @@ static void mt_usb_disable(struct musb *musb)
 
 		mtk_usb_power = false;
 		real_disable++;
-		DBG(0, "<%d,%d,%d,%d>\n", virt_enable, virt_disable, real_enable, real_disable);
+		DBG(1, "<%d,%d,%d,%d>\n", virt_enable, virt_disable, real_enable, real_disable);
 
 #ifndef FPGA_PLATFORM
 #ifdef CONFIG_ARCH_MT6735
 		if (in_interrupt()) {
-			DBG(0, "in interrupt !!!!!!!!!!!!!!!\n");
-			DBG(0, "in interrupt !!!!!!!!!!!!!!!\n");
 			DBG(0, "in interrupt !!!!!!!!!!!!!!!\n");
 		}
 		vcore_release();
@@ -1139,7 +1135,7 @@ static int mt_usb_init(struct musb *musb)
 #ifndef CONFIG_MTK_LEGACY
 	int ret;
 #endif
-	DBG(0, "mt_usb_init\n");
+	DBG(1, "mt_usb_init\n");
 
 	usb_phy_generic_register();
 	musb->xceiv = usb_get_phy(USB_PHY_TYPE_USB2);
@@ -1183,13 +1179,13 @@ static int mt_usb_init(struct musb *musb)
 		if (ret < 0)
 			DBG(0, "regulator set vol failed: %d\n", ret);
 		else
-			DBG(0, "regulator set vol ok, <%d,%d>\n", VUSB33_VOL_MIN, VUSB33_VOL_MAX);
+			DBG(1, "regulator set vol ok, <%d,%d>\n", VUSB33_VOL_MIN, VUSB33_VOL_MAX);
 		ret = regulator_enable(reg);
 		if (ret < 0) {
 			DBG(0, "regulator_enable failed: %d\n", ret);
 			regulator_put(reg);
 		} else {
-			DBG(0, "enable USB regulator\n");
+			DBG(1, "enable USB regulator\n");
 		}
 	} else {
 		DBG(0, "regulator_get failed\n");
@@ -1201,7 +1197,7 @@ static int mt_usb_init(struct musb *musb)
 
 	musb->isr = mt_usb_interrupt;
 	musb_writel(musb->mregs, MUSB_HSDMA_INTR, 0xff | (0xff << DMA_INTR_UNMASK_SET_OFFSET));
-	DBG(0, "musb platform init %x\n", musb_readl(musb->mregs, MUSB_HSDMA_INTR));
+	DBG(1, "musb platform init %x\n", musb_readl(musb->mregs, MUSB_HSDMA_INTR));
 
 #ifdef MUSB_QMU_SUPPORT
 	/* FIXME, workaround for device_qmu + host_dma */
@@ -1387,7 +1383,7 @@ static int mt_usb_dts_probe(struct platform_device *pdev)
 	/* enable uart log */
 	musb_uart_debug = 1;
 
-	DBG(0, "first_connect, check_delay_done to 0\n");
+	DBG(1, "first_connect, check_delay_done to 0\n");
 	first_connect = 0;
 	check_delay_done = 0;
 
@@ -1397,10 +1393,10 @@ static int mt_usb_dts_probe(struct platform_device *pdev)
 		DBG(0, KERN_WARNING "cannot get musb clock\n");
 		return PTR_ERR(musb_clk);
 	}
-	DBG(0, KERN_WARNING "get musb clock ok, prepare it\n");
+	DBG(1, KERN_WARNING "get musb clock ok, prepare it\n");
 	retval = clk_prepare(musb_clk);
 	if (retval == 0) {
-		DBG(0, KERN_WARNING "prepare done\n");
+		DBG(1, KERN_WARNING "prepare done\n");
 	} else {
 		DBG(0, KERN_WARNING "prepare fail\n");
 		return retval;

@@ -580,7 +580,7 @@ void hps_algo_hmp(void)
 	 * algo - end
 	 */
 ALGO_END_WITH_ACTION:
-	hps_warn(
+	hps_debug(
 		"(%04lx)(%u)(%u)action end(%u)(%u)(%u)(%u) (%u)(%u)(%u)(%u)(%u)(%u)(%u)(%u)(%u)(%u) (%u)(%u)(%u) (%u)(%u)(%u) (%u)(%u)(%u)(%u)(%u) wifi_base(%u)(%u)\n",
 		hps_ctxt.action, little_num_online, big_num_online,
 		hps_ctxt.cur_loads, hps_ctxt.cur_tlp,
@@ -992,7 +992,7 @@ void hps_algo_smp(void)
 	 * algo - end
 	 */
 ALGO_END_WITH_ACTION:
-	hps_warn(
+	hps_debug(
 		"(%04lx)(%u)action end(%u)(%u)(%u)(%u) (%u)(%u)(%u)(%u)(%u) (%u)(%u)(%u) (%u)(%u)(%u) (%u)(%u)(%u)(%u)(%u) wifi_base(%u)\n",
 		hps_ctxt.action, little_num_online,
 		hps_ctxt.cur_loads, hps_ctxt.cur_tlp, hps_ctxt.cur_iowait,
@@ -1013,7 +1013,7 @@ ALGO_END_WITH_ACTION:
 ALGO_END_WO_ACTION:
 	hps_count++;
 	if ((hps_count%0xf) == 0) {
-		hps_warn(
+		hps_debug(
 		"(%04lx)(%u)DBG_HRT(%u)(%u)(%u)(%u) (%u)(%u)(%u)(%u)(%u) (%u)(%u)(%u) (%u)(%u)(%u) (%u)(%u)(%u)(%u)(%u) wifi_base(%u)\n",
 		hps_ctxt.action, little_num_online,
 		hps_ctxt.cur_loads, hps_ctxt.cur_tlp, hps_ctxt.cur_iowait,

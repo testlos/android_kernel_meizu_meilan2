@@ -1336,7 +1336,7 @@ INT32 wmt_plat_wake_lock_ctrl(ENUM_WL_OP opId)
 		WMT_DBG_FUNC("WMT-PLAT: after wake_unlock(%d), counter(%d)\n",
 			     wake_lock_active(&wmtWakeLock), counter);
 	} else {
-		WMT_WARN_FUNC("WMT-PLAT: wakelock status(%d), counter(%d)\n",
+		WMT_DBG_FUNC("WMT-PLAT: wakelock status(%d), counter(%d)\n",
 			      wake_lock_active(&wmtWakeLock), counter);
 	}
 	return 0;

@@ -70,7 +70,7 @@ static ssize_t mt_fliper_write(struct file *filp, const char *ubuf,
 	ret = kstrtoul(buf, 10, (unsigned long *)&val);
 	if (ret < 0) {
 		if (fliper_debug)
-			pr_crit("\n<<SOC DVFS FLIPER>> no support change POWER_MODE\n");
+			pr_err("\n<<SOC DVFS FLIPER>> no support change POWER_MODE\n");
 		return cnt;
 	}
 	if (val == 1) {
@@ -89,20 +89,20 @@ static ssize_t mt_fliper_write(struct file *filp, const char *ubuf,
 		fliper_restore_bw();
 	} else if (val == 6) {
 		ret = vcore_high();
-		pr_crit("\n<<SOC DVFS FLIPER>> Command flip to S(%d)\n", ret);
+		pr_info("\n<<SOC DVFS FLIPER>> Command flip to S(%d)\n", ret);
 	} else if (val == 7) {
 		ret = vcore_low();
-		pr_crit("\n<<SOC DVFS FLIPER>> Command flip to E(%d)\n", ret);
+		pr_info("\n<<SOC DVFS FLIPER>> Command flip to E(%d)\n", ret);
 	} else if (val == 8) {
 		if (bw_threshold < 5000)
 			bw_threshold += 250;
-		pr_crit("\n<<SOC DVFS FLIPER>> Command Change EMI bandwidth threshold to %d MB/s\n", bw_threshold);
+		pr_info("\n<<SOC DVFS FLIPER>> Command Change EMI bandwidth threshold to %d MB/s\n", bw_threshold);
 	} else if (val == 9) {
 		if (bw_threshold > 500)
 			bw_threshold -= 250;
-		pr_crit("\n<<SOC DVFS FLIPER>> Command Change EMI bandwidth threshold to %d MB/s\n", bw_threshold);
+		pr_info("\n<<SOC DVFS FLIPER>> Command Change EMI bandwidth threshold to %d MB/s\n", bw_threshold);
 	}
-	pr_crit(" fliper option: %lu\n", val);
+	pr_debug(" fliper option: %lu\n", val);
 	return cnt;
 
 }
@@ -175,26 +175,26 @@ static void mt_power_pef_transfer_work(void)
 	if (perf_mode == 1) {
 		if (pp_index == 0) {
 			ret = vcore_high();
-			pr_crit("\n<<SOC DVFS FLIPER>> flip to S(%d), %llu\n", ret, emi_bw);
+			pr_debug("\n<<SOC DVFS FLIPER>> flip to S(%d), %llu\n", ret, emi_bw);
 		}
 		pp_index = 1 << Y_steps;
 	} else {
 		if (pp_index == 1) {
 			ret = vcore_low();
-			pr_crit("\n<<SOC DVFS FLIPER>> flip to E(%d), %llu\n", ret, emi_bw);
+			pr_debug("\n<<SOC DVFS FLIPER>> flip to E(%d), %llu\n", ret, emi_bw);
 		}
 		pp_index = pp_index >> 1;
 	}
 
 	if (fliper_debug == 1)
-		pr_crit("EMI:Rate:count:mode %6llu:%4d :%llu ns\n", emi_bw, pp_index, t2-t1);
+		pr_debug("EMI:Rate:count:mode %6llu:%4d :%llu ns\n", emi_bw, pp_index, t2-t1);
 
 
 }
 int fliper_set_bw(int bw)
 {
 	if (bw <= BW_THRESHOLD_MAX && bw >= BW_THRESHOLD_MIN) {
-		pr_crit("\n<<SOC DVFS FLIPER>> Set bdw threshold %d -> %d\n", bw_threshold, bw);
+		pr_debug("\n<<SOC DVFS FLIPER>> Set bdw threshold %d -> %d\n", bw_threshold, bw);
 		bw_threshold = bw;
 	} else {
 		pr_crit("\n<<SOC DVFS FLIPER>> Set bdw threshold Error: %d (MAX:%d, MIN:%d)\n"
@@ -204,18 +204,18 @@ int fliper_set_bw(int bw)
 }
 int fliper_restore_bw(void)
 {
-	pr_crit("\n<<SOC DVFS FLIPER>> Restore bdw threshold %d -> %d\n", bw_threshold, BW_THRESHOLD);
+	pr_debug("\n<<SOC DVFS FLIPER>> Restore bdw threshold %d -> %d\n", bw_threshold, BW_THRESHOLD);
 	bw_threshold = BW_THRESHOLD;
 	return 0;
 }
 static void enable_fliper(void)
 {
-	pr_crit("fliper enable +++\n");
+	pr_debug("fliper enable +++\n");
 	mod_timer(&mt_pp_transfer_timer, jiffies + msecs_to_jiffies(X_ms));
 }
 static void disable_fliper(void)
 {
-	pr_crit("fliper disable ---\n");
+	pr_debug("fliper disable ---\n");
 	del_timer(&mt_pp_transfer_timer);
 }
 static void mt_power_pef_transfer(void)
@@ -234,7 +234,7 @@ fliper_pm_callback(struct notifier_block *nb,
 
 	case PM_SUSPEND_PREPARE:
 		ret = vcore_low();
-		pr_crit("\n<<SOC DVFS FLIPER>> Suspend and flip to E(%d)\n", ret);
+		pr_debug("\n<<SOC DVFS FLIPER>> Suspend and flip to E(%d)\n", ret);
 		pp_index = 0;
 		disable_fliper();
 		break;
@@ -245,7 +245,7 @@ fliper_pm_callback(struct notifier_block *nb,
 		if (fliper_enabled == 1)
 			enable_fliper();
 		else
-			pr_crit("\n<<SOC DVFS FLIPER>> Resume enable flipper but flipper is disabled\n");
+			pr_debug("\n<<SOC DVFS FLIPER>> Resume enable flipper but flipper is disabled\n");
 		break;
 
 	case PM_POST_HIBERNATION:
@@ -265,14 +265,14 @@ static void fliper_early_suspend(void)
 	int ret;
 
 	ret = vcore_low();
-	pr_emerg("\n<<SOC DVFS FLIPER>> Early Suspend and flip to E(%d)\n", ret);
+	pr_debug("\n<<SOC DVFS FLIPER>> Early Suspend and flip to E(%d)\n", ret);
 	pp_index = 0;
 	disable_fliper();
 }
 
 static void fliper_late_resume(void)
 {
-	pr_emerg("\n<<SOC DVFS FLIPER>> Late Resume\n");
+	pr_debug("\n<<SOC DVFS FLIPER>> Late Resume\n");
 	enable_fliper();
 }
 

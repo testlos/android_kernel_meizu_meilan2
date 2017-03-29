@@ -1694,12 +1694,12 @@ void dump_idle_cnt_in_interval(int cpu)
 		p2 += sprintf(p2, "SODI: No enter --- ");
 
 	/* dump log */
-	idle_warn("%s\n", log_buf_2);
+	idle_dbg("%s\n", log_buf_2);
 
 	/* dump idle ratio */
 	if (idle_ratio_en) {
 		idle_ratio_profile_duration = idle_get_current_time_ms() - idle_ratio_profile_start_time;
-		idle_warn("--- CPU 0 idle: %llu, DP = %llu, SO = %llu, SL = %llu, RG = %llu --- (ms)\n",
+		idle_dbg("--- CPU 0 idle: %llu, DP = %llu, SO = %llu, SL = %llu, RG = %llu --- (ms)\n",
 				idle_ratio_profile_duration,
 				idle_ratio_value[IDLE_TYPE_DP],
 				idle_ratio_value[IDLE_TYPE_SO],

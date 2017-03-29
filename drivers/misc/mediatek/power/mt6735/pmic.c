@@ -2254,7 +2254,7 @@ void bat_percent_notify_init(void)
 	if (IS_ERR(bat_percent_notify_thread))
 		pr_err("Failed to create bat_percent_notify_thread\n");
 	else
-		pr_err("Create bat_percent_notify_thread : done\n");
+		pr_debug("Create bat_percent_notify_thread : done\n");
 }
 #endif				/* #ifdef BATTERY_PERCENT_PROTECT */
 

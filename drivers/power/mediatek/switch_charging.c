@@ -1045,7 +1045,7 @@ static unsigned int charging_full_check(void)
 
 	battery_charging_control(CHARGING_CMD_GET_CHARGING_STATUS, &status);
 
-	printk(KERN_ERR"g_full_check_count=%d,status= %d,BMT_status.bat_vol=%d\n",
+	pr_debug("g_full_check_count=%d,status= %d,BMT_status.bat_vol=%d\n",
 		g_full_check_count,status,BMT_status.bat_vol);
 
 	if (status == KAL_TRUE)

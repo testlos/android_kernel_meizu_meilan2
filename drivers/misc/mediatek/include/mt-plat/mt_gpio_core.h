@@ -22,6 +22,7 @@
 
 #define GPIOTAG                "[GPIO] "
 #define GPIOLOG(fmt, arg...)   printk(GPIOTAG fmt, ##arg)
+#define GPIODBG(fmt, arg...)   pr_debug(GPIOTAG fmt, ##arg)
 #define GPIOMSG(fmt, arg...)   printk(fmt, ##arg)
 #define GPIOERR(fmt, arg...)   printk(GPIOTAG "%5d: "fmt, __LINE__, ##arg)
 #define GPIOFUC(fmt, arg...)	/* printk(GPIOTAG "%s\n", __FUNCTION__) */

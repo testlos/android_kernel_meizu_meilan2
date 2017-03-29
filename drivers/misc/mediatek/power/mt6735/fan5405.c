@@ -124,12 +124,12 @@ unsigned int fan5405_read_interface(unsigned char RegNum, unsigned char *val, un
 
 	ret = fan5405_read_byte(RegNum, &fan5405_reg);
 
-	pr_info( "[fan5405_read_interface] Reg[%x]=0x%x\n", RegNum, fan5405_reg);
+	pr_debug( "[fan5405_read_interface] Reg[%x]=0x%x\n", RegNum, fan5405_reg);
 
 	fan5405_reg &= (MASK << SHIFT);
 	*val = (fan5405_reg >> SHIFT);
 
-	pr_info( "[fan5405_read_interface] val=0x%x\n", *val);
+	pr_debug( "[fan5405_read_interface] val=0x%x\n", *val);
 
 	return ret;
 }
@@ -141,7 +141,7 @@ unsigned int fan5405_config_interface(unsigned char RegNum, unsigned char val, u
 	int ret = 0;
 
 	ret = fan5405_read_byte(RegNum, &fan5405_reg);
-	pr_info( "[fan5405_config_interface] Reg[%x]=0x%x\n", RegNum, fan5405_reg);
+	pr_debug( "[fan5405_config_interface] Reg[%x]=0x%x\n", RegNum, fan5405_reg);
 
 	fan5405_reg &= ~(MASK << SHIFT);
 	fan5405_reg |= (val << SHIFT);
@@ -154,7 +154,7 @@ unsigned int fan5405_config_interface(unsigned char RegNum, unsigned char val, u
 	}
 
 	ret = fan5405_write_byte(RegNum, fan5405_reg);
-	pr_info( "[fan5405_config_interface] write Reg[%x]=0x%x\n", RegNum,
+	pr_debug( "[fan5405_config_interface] write Reg[%x]=0x%x\n", RegNum,
 		    fan5405_reg);
 
 	return ret;
@@ -537,12 +537,12 @@ void fan5405_dump_register(void)
 {
 	int i = 0;
 
-	pr_info( "[fan5405] ");
+	pr_debug("[fan5405] ");
 	for (i = 0; i < fan5405_REG_NUM; i++) {
 		fan5405_read_byte(i, &fan5405_reg[i]);
-		pr_info( "[0x%x]=0x%x ", i, fan5405_reg[i]);
+		pr_debug("[0x%x]=0x%x ", i, fan5405_reg[i]);
 	}
-	pr_info( "\n");
+	pr_debug("\n");
 }
 
 static int fan5405_driver_probe(struct i2c_client *client, const struct i2c_device_id *id)
@@ -614,7 +614,7 @@ static int fan5405_user_space_probe(struct platform_device *dev)
 {
 	int ret_device_file = 0;
 
-	pr_info( "******** fan5405_user_space_probe!! ********\n");
+	pr_debug( "******** fan5405_user_space_probe!! ********\n");
 
 	ret_device_file = device_create_file(&(dev->dev), &dev_attr_fan5405_access);
 
