@@ -661,7 +661,7 @@ static int mtk_regulator_enable(struct regulator_dev *rdev)
 		val = upmu_get_reg_value(pmu_flags_table[mreg->en_reg].offset);
 	}
 
-	PMICLOG("regulator_enable(name=%s id=%d en_reg=%x vol_reg=%x) [%x]=0x%x\n", rdesc->name,
+	pr_info("regulator_enable(name=%s id=%d en_reg=%x vol_reg=%x) [%x]=0x%x\n", rdesc->name,
 		rdesc->id, mreg->en_reg, mreg->vol_reg, add, val);
 
 	return 0;
@@ -687,7 +687,7 @@ static int mtk_regulator_disable(struct regulator_dev *rdev)
 		val = upmu_get_reg_value(pmu_flags_table[mreg->en_reg].offset);
 	}
 
-	PMICLOG("regulator_disable(name=%s id=%d en_reg=%x vol_reg=%x use_count=%d) [%x]=0x%x\n",
+	pr_info("regulator_disable(name=%s id=%d en_reg=%x vol_reg=%x use_count=%d) [%x]=0x%x\n",
 		rdesc->name, rdesc->id, mreg->en_reg, mreg->vol_reg, rdev->use_count, add, val);
 
 	return 0;

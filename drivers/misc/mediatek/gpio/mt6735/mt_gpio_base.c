@@ -429,6 +429,7 @@ int mt_set_gpio_out_base(unsigned long pin, unsigned long output)
 		GPIO_SET_BITS((1L << bit), DATAOUT_addr[pin].addr + 4);
 #endif
 
+	pr_info("%s:pin:%ld, addr:%lx, out:%ld, bit: %ld\n", __func__, pin, DATAOUT_addr[pin].addr, output, bit);
 	return RSUCCESS;
 }
 
@@ -513,8 +514,8 @@ int mt_set_gpio_mode_base(unsigned long pin, unsigned long mode)
 
 
 #endif
-	/* GPIOERR("%s:pin:%ld, mode:%ld, value:0x%x\n", __func__, pin, mode,
-		GPIO_RD32(MODE_addr[pin].addr)); */
+	 pr_info("%s:pin:%ld, addr:%lx, mode:%ld, mask: %lx, bit: %ld, value:0x%x\n", __func__, pin, MODE_addr[pin].addr, mode, mask, bit,
+		GPIO_RD32(MODE_addr[pin].addr));
 
 	return RSUCCESS;
 }

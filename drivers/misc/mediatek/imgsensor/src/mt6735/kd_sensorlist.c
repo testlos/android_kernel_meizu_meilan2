@@ -127,7 +127,7 @@ struct device *sensor_device = NULL;
 #define PFX "[kd_sensorlist]"
 #define PK_DBG_NONE(fmt, arg...)    do {} while (0)
 #define PK_DBG_FUNC(fmt, arg...)    pr_debug(fmt, ##arg)
-#define PK_INF(fmt, args...)     pr_debug(PFX "[%s] " fmt, __func__, ##args)
+#define PK_INF(fmt, args...)     pr_info(PFX "[%s] " fmt, __func__, ##args)
 
 #undef DEBUG_CAMERA_HW_K
 /* #define DEBUG_CAMERA_HW_K */
@@ -399,6 +399,7 @@ int iReadRegI2C(u8 *a_pSendData , u16 a_sizeSendData, u8 *a_pRecvData, u16 a_siz
 
 		spin_unlock(&kdsensor_drv_lock);
 		/*  */
+		pr_info("iReadRegI2C: bus %d, addr %x, search %d\n", gI2CBusNum, g_pstI2Cclient->addr, g_IsSearchSensor);
 		i4RetValue = i2c_master_send(g_pstI2Cclient, a_pSendData, a_sizeSendData);
 		if (i4RetValue != a_sizeSendData) {
 			PK_ERR("[CAMERA SENSOR] I2C send failed!!, Addr = 0x%x\n", a_pSendData[0]);
@@ -422,6 +423,7 @@ int iReadRegI2C(u8 *a_pSendData , u16 a_sizeSendData, u8 *a_pRecvData, u16 a_siz
 			g_pstI2Cclient2->ext_flag = (g_pstI2Cclient2->ext_flag) & (~I2C_A_FILTER_MSG);
 		}
 		spin_unlock(&kdsensor_drv_lock);
+		pr_info("iReadRegI2C: bus %d, addr %x, search %d\n", gI2CBusNum, g_pstI2Cclient2->addr, g_IsSearchSensor);
 		i4RetValue = i2c_master_send(g_pstI2Cclient2, a_pSendData, a_sizeSendData);
 		if (i4RetValue != a_sizeSendData) {
 			PK_ERR("[CAMERA SENSOR] I2C send failed!!, Addr = 0x%x\n", a_pSendData[0]);
@@ -729,6 +731,7 @@ kd_MultiSensorOpen(void)
 	MINT32 i = 0;
 
 	KD_MULTI_FUNCTION_ENTRY();
+	PK_ERR("kd_MultiSensorOpen");
 	/* from hear to tail */
 	/* for ( i = KDIMGSENSOR_INVOKE_DRIVER_0 ; i < KDIMGSENSOR_MAX_INVOKE_DRIVERS ; i++ ) { */
 	/* from tail to head. */
@@ -772,6 +775,7 @@ kd_MultiSensorOpen(void)
 				/* set i2c slave ID */
 				/* KD_SET_I2C_SLAVE_ID(i,g_invokeSocketIdx[i],IMGSENSOR_SET_I2C_ID_STATE); */
 				/*  */
+				PK_ERR("Call SensorOpen");
 				ret = g_pInvokeSensorFunc[i]->SensorOpen();
 				if (ERROR_NONE != ret) {
 #ifndef CONFIG_FPGA_EARLY_PORTING
@@ -1652,7 +1656,7 @@ static inline int adopt_CAMERA_HW_GetResolution(void *pBuf)
     /* ToDo: remove print */
     ACDK_SENSOR_PRESOLUTION_STRUCT *pBufResolution =  (ACDK_SENSOR_PRESOLUTION_STRUCT *)pBuf;
 	ACDK_SENSOR_RESOLUTION_INFO_STRUCT* pRes[2] = { NULL, NULL };
-    PK_XLOG_INFO("[CAMERA_HW] adopt_CAMERA_HW_GetResolution, pBuf: %p\n", pBuf);
+    PK_INF("[CAMERA_HW] adopt_CAMERA_HW_GetResolution, pBuf: %p, %lu/%lu\n", pBuf, sizeof(ACDK_SENSOR_RESOLUTION_INFO_STRUCT), sizeof(MSDK_SENSOR_RESOLUTION_INFO_STRUCT));
 	pRes[0] = (ACDK_SENSOR_RESOLUTION_INFO_STRUCT* )kmalloc(sizeof(MSDK_SENSOR_RESOLUTION_INFO_STRUCT), GFP_KERNEL);
 	if (pRes[0] == NULL) {
 		PK_ERR(" ioctl allocate mem failed\n");
@@ -3344,6 +3348,7 @@ static long CAMERA_HW_Ioctl_Compat(struct file *filp, unsigned int cmd, unsigned
     if (!filp->f_op || !filp->f_op->unlocked_ioctl)
     return -ENOTTY;
 
+    PK_INF("[CAMERA SENSOR] CAMERA_HW_Ioctl_Compat %x\n", cmd);
     switch (cmd) {
     case COMPAT_KDIMGSENSORIOC_X_GETINFO:
     {
@@ -3438,12 +3443,12 @@ static long CAMERA_HW_Ioctl_Compat(struct file *filp, unsigned int cmd, unsigned
     }
     case COMPAT_KDIMGSENSORIOC_X_GETRESOLUTION2:
     {
-    PK_DBG("[CAMERA SENSOR] KDIMGSENSORIOC_X_GETRESOLUTION\n");
+    PK_INF("[CAMERA SENSOR] KDIMGSENSORIOC_X_GETRESOLUTION\n");
 
     /* int err; */
 
     data32_5 = compat_ptr(arg);
-    data_5 = compat_alloc_user_space(sizeof(data_5));
+    data_5 = compat_alloc_user_space(sizeof(*data_5));
     if (data_5 == NULL)
 	return -EFAULT;
     PK_DBG("[CAMERA SENSOR] compat_get_acdk_sensor_resolution_info_struct\n");
@@ -3520,6 +3525,7 @@ static long CAMERA_HW_Ioctl(
 	}
 
 	pIdx = (u32 *)pBuff;
+	PK_INF("[CAMERA SENSOR] CAMERA_HW_Ioctl %x\n", a_u4Command);
 	switch (a_u4Command) {
 
 #if 0
@@ -3764,7 +3770,7 @@ static inline void UnregisterCAMERA_HWCharDrv(void)
 static int CAMERA_HW_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	int i4RetValue = 0;
-	PK_DBG("[CAMERA_HW] Attach I2C\n");
+	PK_INF("[CAMERA_HW] Attach I2C, addr %x\n", client->addr);
 
 	/* get sensor i2c client */
 	spin_lock(&kdsensor_drv_lock);
@@ -3803,7 +3809,7 @@ static int CAMERA_HW_i2c_probe(struct i2c_client *client, const struct i2c_devic
 	Get_Cam_Regulator();
 #endif
 
-	PK_DBG("[CAMERA_HW] Attached!!\n");
+	PK_INF("[CAMERA_HW] Attached!!\n");
 	return 0;
 }
 
@@ -3974,7 +3980,7 @@ static inline void UnregisterCAMERA_HWCharDrv2(void)
 static int CAMERA_HW_i2c_probe2(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	int i4RetValue = 0;
-	PK_DBG("[CAMERA_HW] Attach I2C0\n");
+	PK_INF("[CAMERA_HW] Attach I2C0, addr %x\n", client->addr);
 
 	spin_lock(&kdsensor_drv_lock);
 
@@ -4011,7 +4017,7 @@ static int CAMERA_HW_i2c_probe2(struct i2c_client *client, const struct i2c_devi
 
 	/* spin_lock_init(&g_CamHWLock); */
 
-	PK_DBG("[CAMERA_HW] Attached!!\n");
+	PK_INF("[CAMERA_HW] Attached!!\n");
 	return 0;
 }
 
@@ -4490,7 +4496,7 @@ static int __init CAMERA_HW_i2C_init(void)
     i2c_register_board_info(SUPPORT_I2C_BUS_NUM1, &i2c_devs1, 1);
     i2c_register_board_info(SUPPORT_I2C_BUS_NUM2, &i2c_devs2, 1);
 #endif
-	PK_DBG("[camerahw_probe] start\n");
+	PK_INF("[camerahw_probe] start\n");
 
 #ifndef CONFIG_OF
 	int ret = 0;

@@ -33,9 +33,9 @@
 #define PK_XLOG_INFO(fmt, args...)
 #endif
 
-#define AEON_CAM_SUPPORT
-//#define GPIO_VCAMA_LDO
-//#define GPIO_VCAMD_LDO
+//#define AEON_CAM_SUPPORT
+#define GPIO_VCAMA_LDO
+#define GPIO_VCAMD_LDO
 
 PowerUp PowerOnList={
     {
@@ -88,6 +88,23 @@ PowerUp PowerOnList={
 		   },
 	    },
     #endif
+
+#if defined(S5K3L2_MIPI_RAW)
+	{SENSOR_DRVNAME_S5K3L2_MIPI_RAW,
+		{
+			{SensorId, MAIN_SENSOR, 0},
+			{SensorMCLK, Mclk1, 0},
+			{RST, Vol_Low, 0},
+			{PDN, Vol_Low, 0},
+			{DVDD, Vol_1200, 10},
+			{AVDD, Vol_2800, 10},
+			{DOVDD, Vol_1800, 10},
+			{AFVDD, Vol_2800, 10},
+			{RST, Vol_High, 10},
+			{PDN, Vol_High, 10},
+		},
+	},
+#endif
 
     #if defined(S5K3M2_MIPI_RAW)
 	    {SENSOR_DRVNAME_S5K3M2_MIPI_RAW,
@@ -177,15 +194,15 @@ PowerUp PowerOnList={
         {SENSOR_DRVNAME_OV5670_MIPI_RAW,
             {
                 {SensorId, SUB_SENSOR, 0},
-                {SensorMCLK, Mclk1, 0},
+                {SensorMCLK, Mclk2, 0},
                 {RST,    Vol_Low,  0},
                 {PDN,    Vol_Low,  0},
-                {AVDD,    Vol_2800, 10},
-                {DOVDD, Vol_1800, 10},
-                {DVDD,    Vol_1200, 10},
+                {AVDD,    Vol_2800, 5},
+                {DOVDD, Vol_1800, 5},
+                {DVDD,    Vol_1200, 5},
                 //{AFVDD, Vol_2800, 10},
-                {RST,    Vol_High, 10},
-                {PDN,    Vol_High, 10},
+                {PDN,    Vol_High, 3},
+                {RST,    Vol_High, 3},
             },
         },
     #endif
@@ -198,7 +215,7 @@ PowerUp PowerOnList={
 				{PDN,	Vol_High,  0},
 				{AVDD,	Vol_2800, 10},
 				{DOVDD, Vol_1800, 10},
-				{DVDD,	Vol_1500, 10},
+				{DVDD,	Vol_1200, 10},
 				//{AFVDD, Vol_2800, 10},
 				{RST,	Vol_High, 10},
 				{PDN,	Vol_Low, 10},
@@ -451,7 +468,7 @@ int mtkcam_gpio_set(int PinIdx, int PwrType, int Val)
 		break;
 	};
 
-	PK_DBG("PinIdx(%d) PwrType(%d) val(%d)\n", PinIdx, PwrType, Val);
+	PK_ERR("PinIdx(%d) PwrType(%d) val(%d)\n", PinIdx, PwrType, Val);
 	return ret;
 }
 
@@ -459,6 +476,7 @@ BOOL hwpoweron(PowerInformation pwInfo, char* mode_name)
 {
     if(pwInfo.PowerType == AVDD)
     {
+    	PK_ERR("[CAMERA AVDD]\n");
     #ifdef GPIO_VCAMA_LDO
 		mtkcam_gpio_set(pinSetIdx, CAMALDO, 1);
 	#endif
@@ -470,6 +488,7 @@ BOOL hwpoweron(PowerInformation pwInfo, char* mode_name)
     }
     else if(pwInfo.PowerType == DVDD)
     {
+    	PK_ERR("[CAMERA DVDD]\n");
     #ifdef GPIO_VCAMD_LDO
 		mtkcam_gpio_set(pinSetIdx, CAMDLDO, 1);
 	#endif
@@ -481,6 +500,7 @@ BOOL hwpoweron(PowerInformation pwInfo, char* mode_name)
     }
     else if(pwInfo.PowerType == DOVDD)
     {
+    	PK_ERR("[CAMERA DOVDD]\n");
 		if(TRUE != _hwPowerOn(VCAMIO,pwInfo.Voltage))
 		{
 			PK_ERR("[CAMERA DOVDD] Fail to enable power\n");
@@ -489,6 +509,7 @@ BOOL hwpoweron(PowerInformation pwInfo, char* mode_name)
     }
     else if(pwInfo.PowerType == AFVDD)
     {
+    	PK_ERR("[CAMERA AFVDD]\n");
 		if(TRUE != _hwPowerOn(VCAMAF,pwInfo.Voltage))
 		{
 			PK_ERR("[CAMERA AFVDD] Fail to enable power\n");
@@ -497,6 +518,7 @@ BOOL hwpoweron(PowerInformation pwInfo, char* mode_name)
     }
     else if(pwInfo.PowerType==PDN)
     {
+    	PK_ERR("[CAMERA PDN]\n");
         if(pwInfo.Voltage == Vol_High)
         {
 			mtkcam_gpio_set(pinSetIdx, CAMPDN, 1);
@@ -508,6 +530,7 @@ BOOL hwpoweron(PowerInformation pwInfo, char* mode_name)
     }
     else if(pwInfo.PowerType==RST)
     {
+    	PK_ERR("[CAMERA RST]\n");
         if(pwInfo.Voltage == Vol_High)
         {
 			mtkcam_gpio_set(pinSetIdx, CAMRST, 1);
@@ -519,14 +542,15 @@ BOOL hwpoweron(PowerInformation pwInfo, char* mode_name)
     }
     else if(pwInfo.PowerType==SensorMCLK)
     {
+    	PK_ERR("[CAMERA SensorMCLK]\n");
         if(pwInfo.Voltage == Mclk1)
         {
-            PK_DBG("Sensor MCLK1 On");
+            PK_ERR("Sensor MCLK1 On");
             ISP_MCLK1_EN(TRUE);
         }
         else if(pwInfo.Voltage == Mclk2)
         {
-            PK_DBG("Sensor MCLK2 On");
+        	PK_ERR("Sensor MCLK2 On");
             ISP_MCLK2_EN(TRUE);
         }
     }
@@ -645,27 +669,30 @@ int kdCISModulePowerOn(CAMERA_DUAL_CAMERA_SENSOR_ENUM SensorIdx, char *currSenso
         {
             if(currSensorName && (PowerOnList.PowerSeq[pwListIdx].SensorName!=NULL) && (0 == strcmp(PowerOnList.PowerSeq[pwListIdx].SensorName,currSensorName)))
             {
-                PK_DBG("kdCISModulePowerOn get in---sensorIdx:%d\n",SensorIdx);
+                PK_ERR("kdCISModulePowerOn get in---sensorIdx:%d\n",SensorIdx);
 
                 sensorInPowerList = KAL_TRUE;
 
+                if((PowerOnList.PowerSeq[pwListIdx].PowerInfo[0].PowerType == SensorId) && (PowerOnList.PowerSeq[pwListIdx].PowerInfo[0].Voltage != pinSetIdx))
+				{
+					PK_ERR("kdCISModulePowerOn %s is not %s\n",PowerOnList.PowerSeq[pwListIdx].SensorName, pinSetIdx ? "SUB_SENSOR":"MAIN_SENSOR");
+					return ((int)SensorIdx << 1); //goto _kdCISModulePowerOn_exit_;
+				}
                 for(pwIdx=1; pwIdx<15; pwIdx++)
                 {
                     if(PowerOnList.PowerSeq[pwListIdx].PowerInfo[pwIdx].PowerType != VDD_None)
                     {
-					#ifdef AEON_CAM_SUPPORT //sanford.lin
-                        if((PowerOnList.PowerSeq[pwListIdx].PowerInfo[0].PowerType == SensorId) && (PowerOnList.PowerSeq[pwListIdx].PowerInfo[0].Voltage != pinSetIdx))
-						{
-							PK_ERR("kdCISModulePowerOn %s is not %s\n",PowerOnList.PowerSeq[pwListIdx].SensorName, pinSetIdx ? "SUB_SENSOR":"MAIN_SENSOR");
-							return ((int)SensorIdx << 1); //goto _kdCISModulePowerOn_exit_;
-						}
-					#endif
+                        PK_ERR("kdCISModulePowerOn pwIdx=%d, %d\n",pwIdx, PowerOnList.PowerSeq[pwListIdx].PowerInfo[pwIdx].PowerType);
 						if(hwpoweron(PowerOnList.PowerSeq[pwListIdx].PowerInfo[pwIdx],mode_name)==FALSE)
                             goto _kdCISModulePowerOn_exit_;
+						if(PowerOnList.PowerSeq[pwListIdx].PowerInfo[pwIdx].Delay != 0) {
+							PK_ERR("Delay: %d\n", PowerOnList.PowerSeq[pwListIdx].PowerInfo[pwIdx].Delay);
+							mdelay(PowerOnList.PowerSeq[pwListIdx].PowerInfo[pwIdx].Delay);
+						}
                     }
                     else
                     {
-                        PK_DBG("kdCISModulePowerOn pwIdx=%d\n",pwIdx);
+                        PK_ERR("kdCISModulePowerOn pwIdx=%d\n",pwIdx);
                         break;
                     }
                 }
@@ -701,17 +728,16 @@ int kdCISModulePowerOn(CAMERA_DUAL_CAMERA_SENSOR_ENUM SensorIdx, char *currSenso
 
                 sensorInPowerList = KAL_TRUE;
 
+            	if((PowerOnList.PowerSeq[pwListIdx].PowerInfo[0].PowerType == SensorId) && (PowerOnList.PowerSeq[pwListIdx].PowerInfo[0].Voltage != pinSetIdx))
+				{
+					PK_ERR("kdCISModulePowerOff %s is not %s\n",PowerOnList.PowerSeq[pwListIdx].SensorName,pinSetIdx ? "SUB_SENSOR":"MAIN_SENSOR");
+					return ((int)SensorIdx << 1); //goto _kdCISModulePowerOn_exit_;
+				}
+
                 for(pwIdx=14; pwIdx>0; pwIdx--)
                 {
                     if(PowerOnList.PowerSeq[pwListIdx].PowerInfo[pwIdx].PowerType != VDD_None)
                     {
-					#ifdef AEON_CAM_SUPPORT //sanford.lin
-					    if((PowerOnList.PowerSeq[pwListIdx].PowerInfo[0].PowerType == SensorId) && (PowerOnList.PowerSeq[pwListIdx].PowerInfo[0].Voltage != pinSetIdx))
-						{
-							PK_ERR("kdCISModulePowerOff %s is not %s\n",PowerOnList.PowerSeq[pwListIdx].SensorName,pinSetIdx ? "SUB_SENSOR":"MAIN_SENSOR");
-							return ((int)SensorIdx << 1); //goto _kdCISModulePowerOn_exit_;
-						}
-					#endif
                         if(hwpowerdown(PowerOnList.PowerSeq[pwListIdx].PowerInfo[pwIdx],mode_name)==FALSE)
                             goto _kdCISModulePowerOn_exit_;
                         if(pwIdx>0)

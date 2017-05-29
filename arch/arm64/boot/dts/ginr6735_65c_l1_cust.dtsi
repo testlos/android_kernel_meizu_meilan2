@@ -235,7 +235,7 @@
 /*************************
  * I2C DTSI File
 *************************/
-/*
+
 &i2c0 {
 	#address-cells = <1>;
 	#size-cells = <0>;
@@ -249,12 +249,12 @@
 		reg = <0x0c>;
 		status = "okay";
 	};
-	camera_sub@3c {
+	camera_sub@36 {
 		compatible = "mediatek,camera_sub";
-		reg = <0x3c>;
+		reg = <0x36>;
 		status = "okay";
 	};
-};*/
+};
 
 &i2c1 {
 	#address-cells = <1>;
