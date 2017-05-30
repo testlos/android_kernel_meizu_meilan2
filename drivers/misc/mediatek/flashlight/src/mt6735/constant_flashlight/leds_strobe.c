@@ -33,8 +33,8 @@
 #include <linux/regulator/consumer.h>
 
 //#define SKY81294
-//#define LM3642TLX
-#define SGM3785
+#define LM3642TLX
+//#define SGM3785
 //MTK Internal chip
 /******************************************************************************
  * Debug configuration
@@ -48,8 +48,9 @@
 /* ANDROID_LOG_VERBOSE */
 
 #define TAG_NAME "[leds_strobe.c]"
+
 #define PK_DBG_NONE(fmt, arg...)    do {} while (0)
-#define PK_DBG_FUNC(fmt, arg...)    printk(TAG_NAME "%s: " fmt, __func__ , ##arg)
+#define PK_DBG_FUNC(fmt, arg...)    pr_debug(TAG_NAME "%s: " fmt, __func__ , ##arg)
 
 //#define DEBUG_LEDS_STROBE
 #ifdef DEBUG_LEDS_STROBE
@@ -526,6 +527,7 @@ static int FL_Uninit(void)
     return 0;
 }
 
+/*
 static int FL_getErr(int* err)
 {
     int reg;
@@ -537,6 +539,7 @@ static int FL_getErr(int* err)
     PK_DBG(" FL_getErr line=%d %d\n",reg,reg2);
     return 0;
 }
+*/
 
 #elif defined(SGM3785)  //SGM3785
 

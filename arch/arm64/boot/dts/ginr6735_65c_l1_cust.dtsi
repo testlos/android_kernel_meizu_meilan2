@@ -313,12 +313,12 @@
 		compatible = "mediatek,nfc";
 		reg = <0x28>;
 		status = "okay";
-	};
+	};*/
 	strobe_main@63 {
 		compatible = "mediatek,strobe_main";
 		reg = <0x63>;
 		status = "okay";
-	}; */
+	};
 	mback:aw9201_ts@45 {
 		compatible = "mediatek,aw9201_ts";
 		reg = <0x45>;
