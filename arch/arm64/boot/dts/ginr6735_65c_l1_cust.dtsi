@@ -244,9 +244,9 @@
 		reg = <0x10>;
 		status = "okay";
 	};
-	camera_main_af@0c {
+	camera_main_af@18 {
 		compatible = "mediatek,camera_main_af";
-		reg = <0x0c>;
+		reg = <0x18>;
 		status = "okay";
 	};
 	camera_sub@36 {
